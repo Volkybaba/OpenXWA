@@ -11,6 +11,7 @@ int XwaFrontendTask_Init(void);
 void XwaFrontendTask_Shutdown(void);
 void XwaFrontendTask_Tick(void);
 void XwaFrontendTask_ServiceFrameSystems(void);
+void XwaFrontendTask_CheckScreenshotHook(void);
 void XwaFrontendTask_Pause(void);
 int XwaFrontendTask_ShouldQuit(void);
 uint64_t XwaFrontendTask_NextWakeDelayUs(void);

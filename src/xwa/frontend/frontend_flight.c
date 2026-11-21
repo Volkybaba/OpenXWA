@@ -248,6 +248,13 @@ void FrontendFlight_CompleteLaunchSession(int flightResult) {
 	FrontendCursor_LoadResources();
 	FrontImage_InitAtlasSprites();
 
+	if (g_flightAbortToConcourseRequested) {
+		g_flightAbortToConcourseRequested = 0;
+		FrontendCursor_Show();
+		FrontendFlight_SetPostFlightCallbacks(Concourse_Update, Concourse_Exit);
+		return;
+	}
+
 	if (!flightResult) {
 		FrontendCursor_Show();
 		Net_ShutdownDirectPlaySession();

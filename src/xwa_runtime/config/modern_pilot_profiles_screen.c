@@ -225,9 +225,9 @@ static void XwaModernPilotProfiles_BeginSwitch(void) {
 		return;
 	}
 	entry = &g_pilotProfilesScreen.entries[g_pilotProfilesScreen.selected_index];
-	snprintf(current_line, sizeof(current_line), "Current: %s", g_pilotData.name);
-	snprintf(new_line, sizeof(new_line), "New: %s", entry->name);
-	if (FrontendDialog_BeginConfirmDialog("Switch to this pilot?", current_line, new_line,
+	snprintf(current_line, sizeof(current_line), "Su anki: %s", g_pilotData.name);
+	snprintf(new_line, sizeof(new_line), "Yeni: %s", entry->name);
+	if (FrontendDialog_BeginConfirmDialog("Bu pilota gecilsin mi?", current_line, new_line,
 										  FrontendString_Get(STR_OKAY), FrontendString_Get(STR_CANCEL))) {
 		g_pilotProfilesScreen.pending_profile_index = g_pilotProfilesScreen.selected_index;
 		g_pilotProfilesScreen.pending_action = XWA_PILOT_PROFILE_PENDING_SWITCH;
@@ -244,7 +244,7 @@ static void XwaModernPilotProfiles_BeginDelete(void) {
 	}
 	entry = &g_pilotProfilesScreen.entries[g_pilotProfilesScreen.selected_index];
 	snprintf(pilot_line, sizeof(pilot_line), "Pilot: %s", entry->name);
-	if (FrontendDialog_BeginConfirmDialog("Delete this pilot?", pilot_line, "This cannot be undone.",
+	if (FrontendDialog_BeginConfirmDialog("Bu pilot silinsin mi?", pilot_line, "Bu geri alinamaz.",
 										  FrontendString_Get(STR_OKAY), FrontendString_Get(STR_CANCEL))) {
 		g_pilotProfilesScreen.pending_profile_index = g_pilotProfilesScreen.selected_index;
 		g_pilotProfilesScreen.pending_action = XWA_PILOT_PROFILE_PENDING_DELETE;
@@ -396,8 +396,8 @@ static int XwaModernPilotProfiles_HandlePending(void) {
 
 static void XwaModernPilotProfiles_FormatEntry(char* text, size_t text_size,
 											   const XwaPilotProfileEntry* entry) {
-	const char* active_text = entry->active ? " (Active)" : "";
-	const char* duplicate_text = entry->duplicate ? " (Duplicate)" : "";
+	const char* active_text = entry->active ? " (Etkin)" : "";
+	const char* duplicate_text = entry->duplicate ? " (Kopya)" : "";
 
 	snprintf(text, text_size, "%s%s%s", entry->name, active_text, duplicate_text);
 }
@@ -446,7 +446,7 @@ int XwaModernPilotProfilesScreen_Update(int menu_center_x, int* cursor_row) {
 
 	XwaModernOptionsMenu_Begin(&menu, menu_center_x, 55, cursor_row,
 							   g_pilotProfilesScreen.count + XWA_PILOT_PROFILE_ACTION_COUNT);
-	XwaModernOptionsMenu_DrawTitle(&menu, "Pilot Profiles");
+	XwaModernOptionsMenu_DrawTitle(&menu, "Pilot Profilleri");
 	list_top = menu.y;
 	if (*cursor_row >= 0 && *cursor_row < g_pilotProfilesScreen.count) {
 		if (*cursor_row < g_pilotProfilesScreen.scroll_offset) {
@@ -490,15 +490,15 @@ int XwaModernPilotProfilesScreen_Update(int menu_center_x, int* cursor_row) {
 	selected_entry =
 		selected_valid ? &g_pilotProfilesScreen.entries[g_pilotProfilesScreen.selected_index] : NULL;
 	if (selected_entry) {
-		snprintf(switch_text, sizeof(switch_text), "Switch to %s", selected_entry->name);
-		snprintf(delete_text, sizeof(delete_text), "Delete %s", selected_entry->name);
+		snprintf(switch_text, sizeof(switch_text), "%s Pilotuna Gec", selected_entry->name);
+		snprintf(delete_text, sizeof(delete_text), "%s Pilotunu Sil", selected_entry->name);
 	} else {
-		strcpy(switch_text, "Switch Pilot");
-		strcpy(delete_text, "Delete Pilot");
+		strcpy(switch_text, "Pilot Degistir");
+		strcpy(delete_text, "Pilot Sil");
 	}
 	switch_disabled =
 		!can_change_active || !selected_entry || selected_entry->active || selected_entry->duplicate;
-	if (XwaModernOptionsMenu_DrawAction(&menu, "Create and Switch to New Pilot", 101, !can_change_active)) {
+	if (XwaModernOptionsMenu_DrawAction(&menu, "Yeni Pilot Olustur ve Gec", 101, !can_change_active)) {
 		memset(g_pilotProfilesScreen.create_name, 0, sizeof(g_pilotProfilesScreen.create_name));
 		g_pilotProfilesScreen.pending_action = XWA_PILOT_PROFILE_PENDING_NAME;
 		FrontendDialog_PromptForPilotName(g_pilotProfilesScreen.create_name);

@@ -155,9 +155,9 @@ static void ControllerScreen_DeviceText(const AeronControllerSelector* selector,
 	*selected = controller;
 	if (!selector->guid[0] && !selector->path[0]) {
 		if (controller) {
-			snprintf(text, capacity, "Automatic: %.42s", controller->name);
+			snprintf(text, capacity, "Otomatik: %.42s", controller->name);
 		} else {
-			snprintf(text, capacity, "%s", "Automatic (none connected)");
+			snprintf(text, capacity, "%s", "Otomatik (bagli aygit yok)");
 		}
 	} else if (controller) {
 		const AeronInputSnapshot* input = Aeron_InputSnapshot();
@@ -198,7 +198,7 @@ static int16_t ControllerScreen_Axis(const AeronControllerSnapshot* controller, 
 static void ControllerScreen_AxisName(const AeronControllerSnapshot* controller, int source, char* text,
 									  size_t capacity) {
 	if (source < 0) {
-		snprintf(text, capacity, "%s", "Not mapped");
+		snprintf(text, capacity, "%s", "Atanmamis");
 	} else if (controller && controller->kind == AERON_CONTROLLER_KIND_GAMEPAD) {
 		snprintf(text, capacity, "%s", Aeron_GamepadAxisName((AeronGamepadAxis)source));
 	} else {
@@ -416,7 +416,7 @@ void XwaModernControllerOptionsScreen_Leave(void) {
 }
 
 XwaModernControllerScreenResult XwaModernControllerOptionsScreen_Update(int menu_center_x, int* cursor_row) {
-	static const char* const toggle_text[] = { "Off", "On" };
+	static const char* const toggle_text[] = { "Kapali", "Acik" };
 	XwaModernInputOptions options;
 	XwaModernOptionsMenu menu;
 	const AeronControllerSnapshot* selected;
@@ -431,29 +431,29 @@ XwaModernControllerScreenResult XwaModernControllerOptionsScreen_Update(int menu
 	XwaModernInputOptions_Get(&options);
 	ControllerScreen_DeviceText(&options.controller.device, device_text, sizeof(device_text), &selected);
 	XwaModernOptionsMenu_Begin(&menu, menu_center_x, 110, cursor_row, 9);
-	XwaModernOptionsMenu_DrawTitle(&menu, "Controller Setup");
+	XwaModernOptionsMenu_DrawTitle(&menu, "Kumanda Kurulumu");
 
-	changed = XwaModernOptionsMenu_DrawValue(&menu, "Active Device", device_text, 100, 0);
+	changed = XwaModernOptionsMenu_DrawValue(&menu, "Etkin Aygit", device_text, 100, 0);
 	if (changed) {
 		ControllerScreen_SelectDevice(&options.controller.device, changed);
 		XwaModernInputOptions_Set(&options);
 		XwaModernInputOptions_Get(&options);
 		ControllerScreen_DeviceText(&options.controller.device, device_text, sizeof(device_text), &selected);
 	}
-	changed = XwaModernOptionsMenu_DrawValue(&menu, "Roll Enabled",
+	changed = XwaModernOptionsMenu_DrawValue(&menu, "Donus Etkin",
 											 toggle_text[options.controller.roll_enabled != 0], 101, 0);
 	if (changed) {
 		options.controller.roll_enabled = !options.controller.roll_enabled;
 		XwaModernInputOptions_Set(&options);
 	}
-	changed = XwaModernOptionsMenu_DrawValue(&menu, "Rumble Enabled",
+	changed = XwaModernOptionsMenu_DrawValue(&menu, "Titresim Etkin",
 											 toggle_text[options.controller.rumble_enabled != 0], 102, 0);
 	if (changed) {
 		options.controller.rumble_enabled = !options.controller.rumble_enabled;
 		XwaModernInputOptions_Set(&options);
 	}
 	snprintf(value, sizeof(value), "%d", options.controller.rumble_strength);
-	changed = XwaModernOptionsMenu_DrawValue(&menu, "Rumble Strength", value, 103, 0);
+	changed = XwaModernOptionsMenu_DrawValue(&menu, "Titresim Siddeti", value, 103, 0);
 	if (changed) {
 		options.controller.rumble_strength += changed;
 		if (options.controller.rumble_strength < XWA_CONTROLLER_RUMBLE_STRENGTH_MIN) {
@@ -464,21 +464,21 @@ XwaModernControllerScreenResult XwaModernControllerOptionsScreen_Update(int menu
 		XwaModernInputOptions_Set(&options);
 	}
 	pressed = XwaModernOptionsMenu_DrawAction(
-		&menu, "Test Rumble", 104, !selected || !selected->has_rumble || !options.controller.rumble_enabled);
+		&menu, "Titresimi Test Et", 104, !selected || !selected->has_rumble || !options.controller.rumble_enabled);
 	if (pressed) {
 		const uint16_t magnitude =
 			(uint16_t)(options.controller.rumble_strength * 65535u / XWA_CONTROLLER_RUMBLE_STRENGTH_MAX);
 		XwaControllerMapping_Rumble(magnitude, magnitude, 300);
 	}
-	if (XwaModernOptionsMenu_DrawAction(&menu, "Configure Axes", 105, 0)) {
+	if (XwaModernOptionsMenu_DrawAction(&menu, "Eksenleri Yapilandir", 105, 0)) {
 		XwaControllerMapping_Rumble(0, 0, 0);
 		return XWA_MODERN_CONTROLLER_SCREEN_AXES;
 	}
-	if (XwaModernOptionsMenu_DrawAction(&menu, "Configure Button Bindings", 106, 0)) {
+	if (XwaModernOptionsMenu_DrawAction(&menu, "Tus Atamalarini Yapilandir", 106, 0)) {
 		XwaControllerMapping_Rumble(0, 0, 0);
 		return XWA_MODERN_CONTROLLER_SCREEN_BUTTONS;
 	}
-	if (XwaModernOptionsMenu_DrawAction(&menu, "Restore Controller Defaults", 107, 0)) {
+	if (XwaModernOptionsMenu_DrawAction(&menu, "Kumanda Varsayilanlarini Geri Yukle", 107, 0)) {
 		XwaModernInputOptions_RestoreControllerDefaults();
 	}
 	pressed = XwaModernOptionsMenu_DrawAction(&menu, FrontendString_Get(STR_BACK), 108, 0);
@@ -492,8 +492,8 @@ XwaModernControllerScreenResult XwaModernControllerOptionsScreen_Update(int menu
 }
 
 int XwaModernControllerAxesScreen_Update(int menu_center_x, int* cursor_row) {
-	static const char* const logical_names[] = { "Yaw", "Pitch", "Throttle", "Roll" };
-	static const char* const toggle_text[] = { "No", "Yes" };
+	static const char* const logical_names[] = { "Sapma", "Egim", "Gaz", "Donus" };
+	static const char* const toggle_text[] = { "Hayir", "Evet" };
 	XwaModernInputOptions options;
 	XwaModernOptionsMenu menu;
 	const AeronControllerSnapshot* selected;
@@ -515,7 +515,7 @@ int XwaModernControllerAxesScreen_Update(int menu_center_x, int* cursor_row) {
 		XwaModernOptionsMenu_TakeEscape(&menu);
 	}
 	ControllerScreen_UpdateAxisCapture(&options, selected);
-	XwaModernOptionsMenu_DrawTitle(&menu, "Controller Axis Mapping");
+	XwaModernOptionsMenu_DrawTitle(&menu, "Kumanda Eksen Eslemesi");
 	for (axis = 0; axis < XWA_CONTROLLER_LOGICAL_AXIS_COUNT; ++axis) {
 		char source_name[48];
 		const int16_t live = ControllerScreen_Axis(selected, profile->axes[axis].source);
@@ -533,13 +533,13 @@ int XwaModernControllerAxesScreen_Update(int menu_center_x, int* cursor_row) {
 			XwaModernInputOptions_Set(&options);
 		}
 		changed = XwaModernOptionsMenu_DrawValue(
-			&menu, "  Invert", toggle_text[profile->axes[axis].invert != 0], 121 + axis * 3, !selected);
+			&menu, "  Ters Cevir", toggle_text[profile->axes[axis].invert != 0], 121 + axis * 3, !selected);
 		if (changed) {
 			profile->axes[axis].invert = !profile->axes[axis].invert;
 			XwaModernInputOptions_Set(&options);
 		}
 		snprintf(value, sizeof(value), "%d%%", (int)(profile->axes[axis].deadzone * 100.0f + 0.5f));
-		changed = XwaModernOptionsMenu_DrawValue(&menu, "  Deadzone", value, 122 + axis * 3, !selected);
+		changed = XwaModernOptionsMenu_DrawValue(&menu, "  Olu Bolge", value, 122 + axis * 3, !selected);
 		if (changed) {
 			int percent = (int)(profile->axes[axis].deadzone * 100.0f + 0.5f) + changed;
 			if (percent < 0) {
@@ -555,12 +555,12 @@ int XwaModernControllerAxesScreen_Update(int menu_center_x, int* cursor_row) {
 		}
 	}
 	if (g_controllerCapture.axis >= 0) {
-		snprintf(value, sizeof(value), "Move an axis for %s (Esc cancels)",
+		snprintf(value, sizeof(value), "%s icin bir eksen hareket ettir (Esc iptal eder)",
 				 logical_names[g_controllerCapture.axis]);
 		FrontendText_DrawCentered(12, value, &(FrontendRect) { 0, menu.y, 639, menu.y + 15 }, g_colorGreen);
 		menu.y += 20;
 	} else {
-		FrontendText_DrawCentered(12, "Enter remaps the selected axis; Delete unbinds it",
+		FrontendText_DrawCentered(12, "Enter secili ekseni yeniden atar; Delete bagini cozer",
 								  &(FrontendRect) { 0, menu.y, 639, menu.y + 15 }, g_colorGreen);
 		menu.y += 20;
 	}
@@ -581,7 +581,7 @@ static void ControllerScreen_DigitalSourceName(const AeronControllerSnapshot* co
 											   AeronControllerDigitalSourceKind kind, int source, char* text,
 											   size_t capacity) {
 	if (kind == AERON_CONTROLLER_DIGITAL_NONE || source < 0) {
-		snprintf(text, capacity, "%s", "Not mapped");
+		snprintf(text, capacity, "%s", "Atanmamis");
 	} else if (kind == AERON_CONTROLLER_DIGITAL_BUTTON && controller &&
 			   controller->kind == AERON_CONTROLLER_KIND_GAMEPAD) {
 		snprintf(text, capacity, "%s", Aeron_GamepadButtonName((AeronGamepadButton)source));
@@ -748,10 +748,10 @@ static int ControllerScreen_BuildBindingRows(const AeronControllerSnapshot* cont
 static void ControllerScreen_BindingLabel(const AeronControllerSnapshot* controller,
 										  const XwaControllerProfile* profile,
 										  const ControllerBindingRow* binding, char* text, size_t capacity) {
-	static const char* const directions[] = { "Up", "Right", "Down", "Left" };
+	static const char* const directions[] = { "Yukari", "Saga", "Asagi", "Sola" };
 
 	if (binding->capture_axis) {
-		snprintf(text, capacity, "%s", "Bind axis direction...");
+		snprintf(text, capacity, "%s", "Eksen yonunu ata...");
 		return;
 	}
 	if (binding->pov_direction >= 0) {
@@ -972,16 +972,16 @@ int XwaModernControllerButtonsScreen_Update(int menu_center_x, int* cursor_row) 
 		XwaModernOptionsMenu_TakeEscape(&menu);
 	}
 	ControllerScreen_UpdatePovCapture(&options, selected);
-	XwaModernOptionsMenu_DrawTitle(&menu, "Controller Button Bindings");
+	XwaModernOptionsMenu_DrawTitle(&menu, "Kumanda Tus Atamalari");
 
 	if (selected && selected->kind == AERON_CONTROLLER_KIND_GAMEPAD) {
-		snprintf(value, sizeof(value), "%s", profile->pov_source ? "D-pad" : "Not mapped");
+		snprintf(value, sizeof(value), "%s", profile->pov_source ? "D-pad" : "Atanmamis");
 	} else if (selected && profile->pov_source >= 0) {
 		snprintf(value, sizeof(value), "Hat %d", profile->pov_source);
 	} else {
-		snprintf(value, sizeof(value), "%s", "Not mapped");
+		snprintf(value, sizeof(value), "%s", "Atanmamis");
 	}
-	changed = XwaModernOptionsMenu_DrawValue(&menu, "POV Source", value, 139, !selected);
+	changed = XwaModernOptionsMenu_DrawValue(&menu, "POV Kaynagi", value, 139, !selected);
 	if (changed) {
 		g_controllerCapture.axis = -1;
 		g_controllerCapture.digital_axis = -1;
@@ -1041,8 +1041,8 @@ int XwaModernControllerButtonsScreen_Update(int menu_center_x, int* cursor_row) 
 		}
 	}
 	if (page_count > 1) {
-		snprintf(value, sizeof(value), "Page %d of %d", g_controllerButtonPage + 1, page_count);
-		changed = XwaModernOptionsMenu_DrawValue(&menu, "Bindings", value, 149, 0);
+		snprintf(value, sizeof(value), "Sayfa %d / %d", g_controllerButtonPage + 1, page_count);
+		changed = XwaModernOptionsMenu_DrawValue(&menu, "Atamalar", value, 149, 0);
 		if (changed) {
 			g_controllerButtonPage += changed;
 			if (g_controllerButtonPage < 0) {
@@ -1056,11 +1056,11 @@ int XwaModernControllerButtonsScreen_Update(int menu_center_x, int* cursor_row) 
 		}
 	}
 	if (g_controllerCapture.digital_axis >= 0) {
-		FrontendText_DrawCentered(12, "Move an axis direction (Esc cancels)",
+		FrontendText_DrawCentered(12, "Bir eksen yonu hareket ettir (Esc iptal eder)",
 								  &(FrontendRect) { 0, menu.y, 639, menu.y + 15 }, g_colorGreen);
 		menu.y += 20;
 	} else if (g_controllerCapture.button >= 0) {
-		FrontendText_DrawCentered(12, "Press a D-pad or hat direction (Esc cancels)",
+		FrontendText_DrawCentered(12, "Bir D-pad veya hat yonune bas (Esc iptal eder)",
 								  &(FrontendRect) { 0, menu.y, 639, menu.y + 15 }, g_colorGreen);
 		menu.y += 20;
 	} else if (g_controllerBindingMessageTtl > 0) {
@@ -1069,10 +1069,10 @@ int XwaModernControllerButtonsScreen_Update(int menu_center_x, int* cursor_row) 
 		--g_controllerBindingMessageTtl;
 		menu.y += 20;
 	}
-	FrontendText_DrawCentered(12, "Press a control to find it; Enter or click assigns; Delete unbinds",
+	FrontendText_DrawCentered(12, "Bulmak icin bir kumandaya bas; Enter veya tiklama atar; Delete bagini cozer",
 							  &(FrontendRect) { 0, menu.y, 639, menu.y + 15 }, g_colorGreen);
 	menu.y += 20;
-	FrontendText_DrawCentered(12, "Left/Right adjusts an axis binding threshold",
+	FrontendText_DrawCentered(12, "Sol/Sag eksen atama esigini ayarlar",
 							  &(FrontendRect) { 0, menu.y, 639, menu.y + 15 }, g_colorGreen);
 	menu.y += 20;
 	back = XwaModernOptionsMenu_DrawAction(&menu, FrontendString_Get(STR_BACK), 150, 0);
