@@ -36,6 +36,10 @@ void FrontendScreen_SetCallbacks(FrontendScreenUpdateFn updateFn, FrontendScreen
 	state->updateFn = updateFn;
 	state = &g_screenStates[g_screenStackTop];
 	state->exitFn = exitFn;
+	/* imp: a tap must not leak into the next room (one tap = one door);
+	   the click latch otherwise survives the room switch and can trigger
+	   a hotspot in the newly opened room in the same tap. */
+	FrontendMouse_ClearClicks();
 	g_frameCounter = -1;
 	g_screenCallbacksDirty = 1;
 }

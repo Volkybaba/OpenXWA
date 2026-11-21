@@ -268,10 +268,8 @@ static void FamilyTransportRoom_DrawNormalBackgroundLayer(void) {
 													 12, g_colorLightBlue);
 	}
 
-	if (!g_frontendMissionLoaded || (unsigned int)g_currentMissionId >= 7u) {
-		FrontImage_DrawSprite("helmet", 0, 0);
-		FrontImage_DrawSprite("jacket", 0, 0);
-	}
+	FrontImage_DrawSprite("helmet", 0, 0);
+	FrontImage_DrawSprite("jacket", 0, 0);
 
 	for (i = 0; i < (unsigned int)g_missionCount; ++i) {
 		int missionIdx;
@@ -291,14 +289,12 @@ static void FamilyTransportRoom_DrawNormalBackgroundLayer(void) {
 		}
 	}
 
-	if (!g_frontendMissionLoaded || (unsigned int)g_currentMissionId >= 7u) {
-		sprintf(buffer, "rating%d", (unsigned int)g_pilotData.pilotRating >> 2);
-		FrontImage_GetResourceRect(buffer, &rect);
-		FrontImage_SetSpriteFrame(buffer, g_pilotData.pilotRating & 3);
-		FrontendButton_DrawSpriteAtOriginWithTooltip(
-			&rect, buffer, FrontendString_Get((UIString)(g_pilotData.pilotRating + STR_TARGET_DRONE)), 12,
-			g_colorLightBlue);
-	}
+	sprintf(buffer, "rating%d", (unsigned int)g_pilotData.pilotRating >> 2);
+	FrontImage_GetResourceRect(buffer, &rect);
+	FrontImage_SetSpriteFrame(buffer, g_pilotData.pilotRating & 3);
+	FrontendButton_DrawSpriteAtOriginWithTooltip(
+		&rect, buffer, FrontendString_Get((UIString)(g_pilotData.pilotRating + STR_TARGET_DRONE)), 12,
+		g_colorLightBlue);
 
 	for (i = 0; i < 6; ++i) {
 		if (g_pilotData.kalidorCresent > (int)i) {
@@ -607,7 +603,7 @@ int FrontendFamily_HandleTrophyHotspots(int unused) {
 				FrontendSound_PlayUISound("panelarm", 1, 0, 255, 12 * g_gameConfig.sfxDatapadVolume, 63);
 			}
 
-			if (!g_frontendMissionLoaded || (unsigned int)g_currentMissionId >= 7u) {
+			if (1) {  /* v23: jacket/rating hotspots always active (was gated on no-mission) */
 				FrontImage_GetResourceRect("jacket", &rect);
 				if (FrontendDraw_PointInRect(&rect, outX, outY)) {
 					hotspotActive = 1;
@@ -630,7 +626,7 @@ int FrontendFamily_HandleTrophyHotspots(int unused) {
 				}
 			}
 
-			if (!g_frontendMissionLoaded || (unsigned int)g_currentMissionId >= 7u) {
+			if (1) {  /* v23: jacket/rating hotspots always active (was gated on no-mission) */
 				sprintf(buffer, "rating%d", (unsigned int)g_pilotData.pilotRating >> 2);
 				FrontImage_GetResourceRect(buffer, &rect);
 				FrontImage_SetSpriteFrame(buffer, g_pilotData.pilotRating & 3);

@@ -66,7 +66,10 @@ int CombatSimMenu_Update(int frameCounter) {
 		}
 
 		if (g_frontendMissionLoaded && (unsigned int)g_currentMissionId < 7u) {
-			FrontImage_RegisterResourceDefault("frontres\\combat\\podopen.bmp", "background");
+			FrontImage_RegisterResourceDefault("frontres\\combat\\combat.bmp", "background");
+			FrontImage_RegisterResourceDefault("frontres\\combat\\doors.flc", "doors");
+			FrontImage_RegisterResourceDefault("frontres\\combat\\multi.flc", "multi");
+			FrontImage_RegisterResourceDefault("frontres\\combat\\single.flc", "single");
 		} else {
 			FrontImage_RegisterResourceDefault("frontres\\combat\\combat.bmp", "background");
 			FrontImage_RegisterResourceDefault("frontres\\combat\\doors.flc", "doors");
@@ -134,18 +137,12 @@ int CombatSimMenu_Update(int frameCounter) {
 		}
 	}
 
+	FrontImage_DrawSprite("multi", 24, 140);
+	FrontImage_DrawSprite("single", 373, 313);
+	FrontImage_DrawSprite("doors", 299, 90);
+
 	if (g_frontendMissionLoaded && (unsigned int)g_currentMissionId < 7u) {
-		textWidth = FrontendText_MeasureWidth(FrontendString_Get(STR_BACK_TO_FAMILY_TRANSPORT), 15);
-		rect.left = 300 - (textWidth >> 1);
-		rect.right = textWidth + rect.left + 40;
-		if (g_filmFeatureEnabled) {
-			rect.top = 100;
-			rect.bottom = 140;
-		} else {
-			rect.top = 140;
-			rect.bottom = 180;
-		}
-		FrontendDraw_FillRectTranslucent(&rect, 0, 0, (unsigned int)g_combatSimMenuTranslucentFillColor);
+		FrontendDraw_RectAssign(&rect, 373, 313, 573, 479);
 
 		color = g_colorLightBlue;
 		if (FrontendDraw_PointInRect(&rect, mouseX, mouseY)) {
@@ -158,17 +155,14 @@ int CombatSimMenu_Update(int frameCounter) {
 				g_combatSimMenuPendingTransition = COMBAT_SIM_MENU_PENDING_SINGLE_PLAYER;
 			}
 		}
-		FrontendText_DrawCentered(15, FrontendString_Get(STR_SINGLE_PLAYER), &rect, color);
 	} else {
-		FrontendDraw_RectAssign(&rect, 384, 252, 630, 424);
+		FrontendDraw_RectAssign(&rect, 373, 313, 573, 479);
 		if (FrontendDraw_PointInRect(&rect, mouseX, mouseY)) {
 			textWidth = FrontendText_MeasureWidth(FrontendString_Get(STR_SINGLE_PLAYER), 15);
 			rect.left = 300 - (textWidth >> 1);
 			rect.top = 400;
 			rect.right = textWidth + rect.left + 40;
 			rect.bottom = 440;
-			FrontendDraw_FillRectTranslucent(&rect, 0, 0, (unsigned int)g_combatSimMenuTranslucentFillColor);
-			FrontendText_DrawCentered(15, FrontendString_Get(STR_SINGLE_PLAYER), &rect, 0xffff);
 
 			if (FrontendMouse_GetLeftClick() || FrontendMouse_GetRightClick()) {
 				g_frontendMissionSessionMode = FRONTEND_MISSION_SESSION_SINGLEPLAYER;
@@ -179,78 +173,7 @@ int CombatSimMenu_Update(int frameCounter) {
 	}
 
 	if (g_frontendMissionLoaded && (unsigned int)g_currentMissionId < 7u) {
-		textWidth = FrontendText_MeasureWidth(FrontendString_Get(STR_BACK_TO_FAMILY_TRANSPORT), 15);
-		rect.left = 300 - (textWidth >> 1);
-		rect.right = textWidth + rect.left + 40;
-		if (g_filmFeatureEnabled) {
-			rect.top = 180;
-			rect.bottom = 220;
-		} else {
-			rect.top = 220;
-			rect.bottom = 260;
-		}
-		FrontendDraw_FillRectTranslucent(&rect, 0, 0, (unsigned int)g_combatSimMenuTranslucentFillColor);
-
-		color = g_colorLightBlue;
-		if (FrontendDraw_PointInRect(&rect, mouseX, mouseY)) {
-			color = g_colorYellow;
-			if (FrontendMouse_GetLeftClick() || FrontendMouse_GetRightClick()) {
-				color = g_colorRed;
-				FrontendSound_PlayUISound("jewelsound", 1, 0, 255, 12 * g_gameConfig.sfxDatapadVolume, 63);
-				g_combatSimMenuPendingTransition = COMBAT_SIM_MENU_PENDING_MULTIPLAYER;
-			}
-		}
-		FrontendText_DrawCentered(15, FrontendString_Get(STR_MULTIPLAYER), &rect, color);
-	} else {
-		FrontendDraw_RectAssign(&rect, 36, 148, 318, 256);
-		if (FrontendDraw_PointInRect(&rect, mouseX, mouseY)) {
-			textWidth = FrontendText_MeasureWidth(FrontendString_Get(STR_MULTIPLAYER), 15);
-			rect.left = 300 - (textWidth >> 1);
-			rect.top = 400;
-			rect.right = textWidth + rect.left + 40;
-			rect.bottom = 440;
-			FrontendDraw_FillRectTranslucent(&rect, 0, 0, (unsigned int)g_combatSimMenuTranslucentFillColor);
-			FrontendText_DrawCentered(15, FrontendString_Get(STR_MULTIPLAYER), &rect, 0xffff);
-
-			if (FrontendMouse_GetLeftClick() || FrontendMouse_GetRightClick()) {
-				g_combatSimMenuPendingTransition = COMBAT_SIM_MENU_PENDING_MULTIPLAYER_POD;
-				FrontImage_SetSpriteFrame("multi", 34);
-			}
-		}
-	}
-
-	if (g_frontendMissionLoaded && (unsigned int)g_currentMissionId < 7u && g_filmFeatureEnabled) {
-		textWidth = FrontendText_MeasureWidth(FrontendString_Get(STR_BACK_TO_FAMILY_TRANSPORT), 15);
-		rect.left = 300 - (textWidth >> 1);
-		rect.top = 260;
-		rect.right = textWidth + rect.left + 40;
-		rect.bottom = 300;
-		FrontendDraw_FillRectTranslucent(&rect, 0, 0, (unsigned int)g_combatSimMenuTranslucentFillColor);
-
-		color = g_colorLightBlue;
-		if (FrontendDraw_PointInRect(&rect, mouseX, mouseY)) {
-			color = g_colorYellow;
-			if (FrontendMouse_GetLeftClick() || FrontendMouse_GetRightClick()) {
-				color = g_colorRed;
-				FrontendSound_PlayUISound("jewelsound", 1, 0, 255, 12 * g_gameConfig.sfxDatapadVolume, 63);
-				FrontendScreen_SetCallbacks(FilmRoom_Update, FilmRoom_Exit);
-			}
-		}
-		FrontendText_DrawCentered(15, FrontendString_Get(STR_CONCOURSE_FILM_ROOM), &rect, color);
-	}
-
-	if (g_frontendMissionLoaded && (unsigned int)g_currentMissionId < 7u) {
-		textWidth = FrontendText_MeasureWidth(FrontendString_Get(STR_BACK_TO_FAMILY_TRANSPORT), 15);
-		rect.left = 300 - (textWidth >> 1);
-		rect.right = textWidth + rect.left + 40;
-		if (g_filmFeatureEnabled) {
-			rect.top = 340;
-			rect.bottom = 380;
-		} else {
-			rect.top = 300;
-			rect.bottom = 340;
-		}
-		FrontendDraw_FillRectTranslucent(&rect, 0, 0, (unsigned int)g_combatSimMenuTranslucentFillColor);
+		FrontendDraw_RectAssign(&rect, 24, 140, 332, 248);
 
 		color = g_colorLightBlue;
 		if (FrontendDraw_PointInRect(&rect, mouseX, mouseY)) {
@@ -261,9 +184,53 @@ int CombatSimMenu_Update(int frameCounter) {
 				FrontendScreen_SetCallbacks(Concourse_Update, Concourse_Exit);
 			}
 		}
-		FrontendText_DrawCentered(15, FrontendString_Get(STR_BACK_TO_FAMILY_TRANSPORT), &rect, color);
 	} else {
-		FrontendDraw_RectAssign(&rect, 326, 22, 412, 148);
+		FrontendDraw_RectAssign(&rect, 24, 140, 332, 248);
+		if (FrontendDraw_PointInRect(&rect, mouseX, mouseY)) {
+			textWidth = FrontendText_MeasureWidth(FrontendString_Get(STR_MULTIPLAYER), 15);
+			rect.left = 300 - (textWidth >> 1);
+			rect.top = 400;
+			rect.right = textWidth + rect.left + 40;
+			rect.bottom = 440;
+
+			if (FrontendMouse_GetLeftClick() || FrontendMouse_GetRightClick()) {
+				FrontendScreen_SetCallbacks(Concourse_Update, Concourse_Exit);
+			}
+		}
+	}
+
+	if (g_frontendMissionLoaded && (unsigned int)g_currentMissionId < 7u && g_filmFeatureEnabled) {
+		textWidth = FrontendText_MeasureWidth(FrontendString_Get(STR_BACK_TO_FAMILY_TRANSPORT), 15);
+		rect.left = 300 - (textWidth >> 1);
+		rect.top = 260;
+		rect.right = textWidth + rect.left + 40;
+		rect.bottom = 300;
+
+		color = g_colorLightBlue;
+		if (FrontendDraw_PointInRect(&rect, mouseX, mouseY)) {
+			color = g_colorYellow;
+			if (FrontendMouse_GetLeftClick() || FrontendMouse_GetRightClick()) {
+				color = g_colorRed;
+				FrontendSound_PlayUISound("jewelsound", 1, 0, 255, 12 * g_gameConfig.sfxDatapadVolume, 63);
+				FrontendScreen_SetCallbacks(FilmRoom_Update, FilmRoom_Exit);
+			}
+		}
+	}
+
+	if (g_frontendMissionLoaded && (unsigned int)g_currentMissionId < 7u) {
+		FrontendDraw_RectAssign(&rect, 299, 90, 445, 239);
+
+		color = g_colorLightBlue;
+		if (FrontendDraw_PointInRect(&rect, mouseX, mouseY)) {
+			color = g_colorYellow;
+			if (FrontendMouse_GetLeftClick() || FrontendMouse_GetRightClick()) {
+				color = g_colorRed;
+				FrontendSound_PlayUISound("jewelsound", 1, 0, 255, 12 * g_gameConfig.sfxDatapadVolume, 63);
+				FrontendScreen_SetCallbacks(Concourse_Update, Concourse_Exit);
+			}
+		}
+	} else {
+		FrontendDraw_RectAssign(&rect, 299, 90, 445, 239);
 		if (FrontendDraw_PointInRect(&rect, mouseX, mouseY)) {
 			if (FrontImage_GetSpriteFrame("doors") == 0) {
 				FrontendSound_PlayUISound("tourdooropen", 1, 0, 255, 8 * g_gameConfig.sfxDatapadVolume, 63);
@@ -283,8 +250,6 @@ int CombatSimMenu_Update(int frameCounter) {
 			if (FrontImage_GetSpriteFrame("doors") != 0) {
 				FrontImage_DrawSprite("doors", 299, 90);
 			}
-			FrontendDraw_FillRectTranslucent(&rect, 0, 0, (unsigned int)g_combatSimMenuTranslucentFillColor);
-			FrontendText_DrawCentered(15, FrontendString_Get(STR_BACK_TO_CONCOURSE), &rect, 0xffff);
 
 			if (FrontendMouse_GetLeftClick() || FrontendMouse_GetRightClick()) {
 				FrontendScreen_SetCallbacks(Concourse_Update, Concourse_Exit);

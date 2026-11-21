@@ -26,6 +26,7 @@
 enum {
 	FRONTEND_MISSION_FORMAT_V17 = 17,
 	FRONTEND_MISSION_FORMAT_V18 = 18,
+	FRONTEND_MISSION_FORMAT_V20 = 20,
 	FRONTEND_MISSION_HEADER_SIZE = 0x23EA,
 	FRONTEND_MISSION_SKIRMISH_TEAM_NAME_BASE = STR_GAME_ONE,
 	FRONTEND_MISSION_LOCALIZE_NAME_SIZE = 128,
@@ -35,7 +36,8 @@ enum {
 };
 
 static int FrontendMission_IsSupportedFormat(uint16_t formatVersion) {
-	return formatVersion == FRONTEND_MISSION_FORMAT_V18 || formatVersion == FRONTEND_MISSION_FORMAT_V17;
+	return formatVersion == FRONTEND_MISSION_FORMAT_V18 || formatVersion == FRONTEND_MISSION_FORMAT_V17 ||
+		   formatVersion == FRONTEND_MISSION_FORMAT_V20;
 }
 
 static __inline unsigned int FrontendMission_ConvertLegacyDelayValue(unsigned int value) {

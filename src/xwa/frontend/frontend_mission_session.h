@@ -14,6 +14,7 @@ typedef enum FrontendMissionSessionMode {
 
 extern FrontendMissionSessionMode g_frontendMissionSessionMode;
 extern int g_frontendSinglePlayerFlightSessionActive;
+extern int g_flightAbortToConcourseRequested;
 extern int g_frontendQuickStartLaunchFlag;
 extern int g_skipFrontendEntryMovie;
 extern int g_unusedFrontendMissionLaunchPrepared;

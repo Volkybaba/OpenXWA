@@ -7,6 +7,7 @@
 #include "xwa/audio/cd_audio.h"
 #include "xwa/audio/music.h"
 #include "xwa/flight/flight.h"
+#include "xwa/flight/mission/mission.h"
 #include "xwa/frontend/cutscene.h"
 #include "xwa/frontend/frontend_button.h"
 #include "xwa/frontend/frontend_color.h"
@@ -176,9 +177,9 @@ int Config_MainMenuScreen(void) {
 #endif
 
 #ifdef XWA_MODERN
-	rowCount = g_configRestrictedOptionsModalActive ? 8 : 11;
+	rowCount = g_configRestrictedOptionsModalActive ? 9 : 11;
 #else
-	rowCount = g_configRestrictedOptionsModalActive ? 7 : 10;
+	rowCount = g_configRestrictedOptionsModalActive ? 8 : 10;
 #endif
 	y = 215 - ((25 * rowCount) >> 1);
 	keyState = (char)Config_GetMenuNavKey();
@@ -209,7 +210,7 @@ int Config_MainMenuScreen(void) {
 
 	y += 25;
 #ifdef XWA_MODERN
-	FrontendText_Draw(10, "OpenXWA " OPENXWA_VERSION, 35, 420, g_colorPaleBlue);
+	FrontendText_Draw(10, "Volkyxwall 0.42.0", 35, 420, g_colorPaleBlue);
 #else
 	memcpy(versionText, "2.02", sizeof(versionText));
 	sprintf(g_frontendScratchBuffer, "%s %s", FrontendString_Get(STR_CONFIG_VERSION), versionText);
@@ -387,7 +388,7 @@ int Config_MainMenuScreen(void) {
 	}
 
 #ifdef XWA_MODERN
-	text = "Pilot Profiles";
+	text = "Pilot Profilleri";
 	titleWidth = FrontendText_MeasureWidth(text, 20);
 	textX = g_configMenuCenterX - (int)(titleWidth >> 1);
 	buttonPressed = FrontendButton_DrawMenuButton(textX, y, text, 20, g_colorPaleBlue, 30, 0, "settingsound");
@@ -430,10 +431,37 @@ int Config_MainMenuScreen(void) {
 		return 1;
 	}
 
+	if (g_configRestrictedOptionsModalActive) {
+		y += 25;
+		++rowIndex;
+#ifdef XWA_MODERN
+		text = "Gorevi Iptal Et";
+#else
+		text = FrontendString_Get(STR_ABORT);
+#endif
+		titleWidth = FrontendText_MeasureWidth(text, 20);
+		textX = g_configMenuCenterX - (int)(titleWidth >> 1);
+		buttonPressed = FrontendButton_DrawMenuButton(textX, y, text, 20, g_colorPaleBlue, 31, 0, "settingsound");
+		if (g_menuCursorRow == rowIndex) {
+			FrontendText_Draw(20, text, textX, y, g_colorGreen);
+			if (keyState == CONFIG_KEY_ENTER) {
+				FrontendSound_PlayUISound("settingsound", 1, 0, 255, 12 * g_gameConfig.sfxDatapadVolume, 63);
+				Keyboard_FlushCharBuffer();
+				keyState = 0;
+				buttonPressed = 1;
+			}
+		}
+		if (buttonPressed) {
+			g_flightMissionEndPending = 1;
+			g_flightAbortToConcourseRequested = 1;
+			return 1;
+		}
+	}
+
 	y += 25;
 	++rowIndex;
 #ifdef XWA_MODERN
-	text = "Exit The Game";
+	text = "Oyundan Cik";
 #else
 	text = FrontendString_Get(STR_CONFIG_EXIT_TO_WINDOWS);
 #endif
@@ -3849,7 +3877,7 @@ int Config_VideoOptionsMenu(void) {
 	FrontendDraw_Line(titleX, 195, titleX + (int)titleWidth, 195, g_colorLightBlue);
 
 #ifdef XWA_MODERN
-	text = "OpenXWA Video Options";
+	text = "OpenXWA Goruntu Secenekleri";
 	titleWidth = FrontendText_MeasureWidth(text, 20);
 	textX = g_configMenuCenterX - (int)(titleWidth >> 1);
 	buttonPressed =
@@ -4331,10 +4359,25 @@ int Config_DrawOptionTextEdit(char* text, unsigned int maxLen, int unused, char*
 	(void)unused;
 #ifdef XWA_MODERN
 	if (g_configTextEditRunActive) {
-		if (!FrontendDialog_EditText(text, maxLen, label)) {
+		if (FrontendDialog_EditText(text, maxLen, label)) {
+			/* Edit dialog just completed (Enter/Esc): the confirming input is
+			   consumed. Neutralize this frame's nav key and drop any queued
+			   input so the confirmation cannot also trigger Geri/Back and
+			   leave General Options. The edited row is drawn normally below. */
+			g_configTextEditRunActive = 0;
+			*keyState = 0;
+			Keyboard_FlushCharBuffer();
+			FrontendMouse_ClearClicks();
+		} else if (!FrontendDialog_IsEditActive()) {
+			/* No edit dialog is actually running (orphaned flag, e.g.
+			   BeginModal failed): clear it so the row draws normally
+			   instead of skipping it forever. Note: this must check the
+			   edit dialog itself, not any modal — the options datapad is
+			   itself a modal, so a generic modal check is always true. */
+			g_configTextEditRunActive = 0;
+		} else {
 			return 0;
 		}
-		g_configTextEditRunActive = 0;
 	}
 #endif
 

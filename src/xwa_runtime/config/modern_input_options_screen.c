@@ -7,11 +7,11 @@
 #include <stdint.h>
 
 int XwaModernInputOptionsScreen_Update(int menu_center_x, int* cursor_row) {
-	static const char* const toggle_texts[] = { "Off", "On" };
+	static const char* const toggle_texts[] = { "Kapali", "Acik" };
 	/* Config tokens stay 'position'/'rate'; the labels describe the feel:
 	 * a virtual stick holds its deflection, direct control turns the ship
 	 * only while the mouse moves. */
-	static const char* const mode_texts[] = { "Virtual Stick", "Direct" };
+	static const char* const mode_texts[] = { "Sanal Cubuk", "Dogrudan" };
 	static const char* const sensitivity_texts[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
 	XwaModernInputOptions options;
 	XwaModernOptionsMenu menu;
@@ -36,13 +36,13 @@ int XwaModernInputOptionsScreen_Update(int menu_center_x, int* cursor_row) {
 	XwaModernOptionsMenu_Begin(&menu, menu_center_x, 160, cursor_row, 6);
 	XwaModernOptionsMenu_DrawTitle(&menu, FrontendString_Get(STR_CONFIG_GAME_CONTROLLER_OPTIONS));
 
-	changed |= XwaModernOptionsMenu_DrawCycleU8(&menu, &mouse_flight, "Mouse Flight Control", toggle_texts, 2,
+	changed |= XwaModernOptionsMenu_DrawCycleU8(&menu, &mouse_flight, "Fare ile Ucus Kontrolu", toggle_texts, 2,
 												70, 0);
 	changed |=
-		XwaModernOptionsMenu_DrawCycleU8(&menu, &mouse_mode, "Mouse Control Mode", mode_texts, 2, 74, 0);
-	changed |= XwaModernOptionsMenu_DrawCycleU8(&menu, &sensitivity, "Mouse Sensitivity", sensitivity_texts,
+		XwaModernOptionsMenu_DrawCycleU8(&menu, &mouse_mode, "Fare Kontrol Modu", mode_texts, 2, 74, 0);
+	changed |= XwaModernOptionsMenu_DrawCycleU8(&menu, &sensitivity, "Fare Hassasiyeti", sensitivity_texts,
 												9, 71, 0);
-	changed |= XwaModernOptionsMenu_DrawCycleU8(&menu, &invert_y, "Invert Mouse Y", toggle_texts, 2, 72, 0);
+	changed |= XwaModernOptionsMenu_DrawCycleU8(&menu, &invert_y, "Fare Y Eksenini Ters Cevir", toggle_texts, 2, 72, 0);
 
 	if (changed) {
 		options.mouse_flight_enabled = mouse_flight != 0;
@@ -53,7 +53,7 @@ int XwaModernInputOptionsScreen_Update(int menu_center_x, int* cursor_row) {
 	}
 
 	result = 0;
-	if (XwaModernOptionsMenu_DrawAction(&menu, "Controller Setup", 75, 0)) {
+	if (XwaModernOptionsMenu_DrawAction(&menu, "Kumanda Kurulumu", 75, 0)) {
 		result = 2;
 	}
 	pressed = XwaModernOptionsMenu_DrawAction(&menu, FrontendString_Get(STR_BACK), 73, 0);

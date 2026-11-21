@@ -1,5 +1,6 @@
 #include "xwa/flight/flight_display.h"
 
+#include "aeron/aeron.h"
 #include "xwa/assets/file_io.h"
 #include "xwa/assets/object_type.h"
 #include "xwa/audio/sound.h"
@@ -1237,16 +1238,15 @@ void FlightAlert_DrawBox(int verticalMode, char* line1, char* line2, uint8_t bgC
 }
 
 // FUNCTION: XWA 0x4D4650
+/* v37: the screenshot is no longer read from the software framebuffer (the
+ * Vulkan renderer never writes it, which produced black BMPs). The first free
+ * flightscreenN.bmp name is picked here and the capture is deferred to the next
+ * Aeron_Present, which downloads the composited swapchain texture from the GPU
+ * and saves it. */
 int FlightScreenshot_Capture(void) {
-	char fileName[64];
-	uint8_t palette[1024];
-	int fileIdx;
-	int lockCount;
-	int remainingLocks;
-	int savedLockBackBufferForHudDraw;
-	int result;
+	char     fileName[64];
+	int      fileIdx;
 	XwaFile* stream;
-	int i;
 
 	fileIdx = 0;
 	for (;;) {
@@ -1261,39 +1261,7 @@ int FlightScreenshot_Capture(void) {
 		++fileIdx;
 	}
 
-	for (i = 0; i < 256; ++i) {
-		palette[4 * i + 0] = (uint8_t)(g_swPalette[i].b << 2);
-		palette[4 * i + 1] = (uint8_t)(g_swPalette[i].g << 2);
-		palette[4 * i + 2] = (uint8_t)(g_swPalette[i].r << 2);
-		palette[4 * i + 3] = 0;
-	}
-
-	lockCount = FlightSurface_GetLockCount();
-	if (lockCount > 0) {
-		remainingLocks = lockCount;
-		do {
-			FlightSurface_Unlock();
-			--remainingLocks;
-		} while (remainingLocks != 0);
-	}
-
-	FlightDisplay_Flip();
-	savedLockBackBufferForHudDraw = g_flightLockBackBufferForHudDraw;
-	g_flightLockBackBufferForHudDraw = 0;
-	FlightSurface_Lock();
-	FrontImage_SaveBmpFile(fileName, g_surfacePixels, g_surfaceWidth, g_surfaceHeight, g_surfacePitch,
-						   8 * g_flight16bppBytesPerPixel, Display_IsPixelFormat555(), palette);
-	result = FlightSurface_Unlock();
-	g_flightLockBackBufferForHudDraw = savedLockBackBufferForHudDraw;
-
-	if (lockCount > 0) {
-		do {
-			result = FlightSurface_Lock();
-			--lockCount;
-		} while (lockCount != 0);
-	}
-
-	return result;
+	return Aeron_RequestScreenshot(fileName);
 }
 
 /* Locks `surface` (retrying on DDERR_WASSTILLDRAWING), publishes its pixels to

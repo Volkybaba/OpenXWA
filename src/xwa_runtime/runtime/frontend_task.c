@@ -7,6 +7,7 @@
 #include "xwa/frontend/frontend_bootstrap.h"
 #include "xwa/frontend/frontend_cursor.h"
 #include "xwa/frontend/frontend_display.h"
+#include "xwa/flight/flight_display.h"
 #include "xwa/frontend/frontend_file_stream.h"
 #include "xwa/frontend/frontend_input.h"
 #include "xwa/frontend/frontend_resources.h"
@@ -131,6 +132,33 @@ void XwaFrontendTask_Pause(void) {
 	g_xwaFrontendNextFrameElapsedUs = XwaTime_GetElapsedUs();
 }
 
+/* Screenshot hook (v40 concourse, v41 movies): the flight/hangar action switch handles key 232,
+ * but no frontend screen does, so Fn did nothing in the concourse. The frontend
+ * task polls the joystick every frame (ServiceFrameSystems), and the WinMM shim
+ * reports the logical profile buttons as dwButtons bits, so the frontend button
+ * state mirrors the flight mapping: slot i pressed + joyButtons[i] == 232 means
+ * the screenshot button. Edge-detected per slot so one press yields one capture;
+ * the capture itself only arms the pending flag, and the next Aeron_Present
+ * downloads the composited frame (the frontend also presents through Aeron).
+ * Shared with the movie task (v41): XwaMovieTask_Tick also runs
+ * ServiceFrameSystems every frame, so the same hook covers film playback. */
+void XwaFrontendTask_CheckScreenshotHook(void) {
+	static unsigned char prevHeld[2][16];
+	int slot;
+	int i;
+
+	for (slot = 0; slot < 2; ++slot) {
+		for (i = 0; i < 16; ++i) {
+			unsigned char held = g_joystickState.buttons.held[32 * slot + i];
+			unsigned char pressed = held && !prevHeld[slot][i];
+			prevHeld[slot][i] = held;
+			if (pressed && g_gameConfig.joyButtons[i] == 232) {
+				FlightScreenshot_Capture();
+			}
+		}
+	}
+}
+
 void XwaFrontendTask_ServiceFrameSystems(void) {
 	Joystick_UpdateState(0);
 	Joystick_UpdateState(1);
@@ -157,6 +185,7 @@ void XwaFrontendTask_Tick(void) {
 
 	g_xwaFrontendNextFrameElapsedUs = nowUs + XwaTime_GetLegacyTimerIntervalUs((uint32_t)g_frameIntervalMs);
 	XwaFrontendTask_ServiceFrameSystems();
+	XwaFrontendTask_CheckScreenshotHook();
 	/* Original RunMainLoop also handled CDAudio resume/track-end work here. CD audio is intentionally
 	   not ported because it is not used by the original game frontend flow. */
 

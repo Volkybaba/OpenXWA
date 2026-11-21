@@ -714,10 +714,9 @@ int Concourse_Update(int frameCounter) {
 		}
 
 		Concourse_LoadNextTourMission();
-		if (g_frontendMissionLoaded && (unsigned int)g_currentMissionId < 7u) {
-			FrontendScreen_SetCallbacks(FamilyTransportRoom_Update, FamilyTransportRoom_Exit);
-			return 0;
-		}
+		/* imp: no auto-bounce to the family room; the concourse stays open
+		   during family missions so its doors stay selectable. The family
+		   room is still reachable via the Family Transport hotspot. */
 
 		musicState = MUSIC_STATE_FRONTEND_1200;
 		if (g_gameConfig.datapadMusicEnabled) {

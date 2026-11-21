@@ -49,6 +49,7 @@ static int g_frontDialogConfirmCursorWasVisible;
 static int g_frontDialogConfirmOverlayTextWasEnabled;
 #endif
 static int g_frontDialogEditActive;
+static int g_frontDialogEditCompleted;
 static int g_frontDialogEditSavedGlyphGradientBg;
 static int g_frontDialogEditOverlayTextWasEnabled;
 static char* g_frontDialogEditText;
@@ -494,23 +495,26 @@ int FrontendDialog_PromptForPilotName(char* outName) {
 
 // FUNCTION: XWA 0x559CE0
 int FrontendDialog_EditText(char* text, unsigned int maxChars, const char* promptText) {
-	FrontendScreenModalStatus modalStatus;
 	FrontendRect rect;
 
+	/* The edit dialog runs as a nested modal inside the options datapad,
+	   which is itself a modal: after the dialog closes, the global modal
+	   status still reports RUNNING (datapad), so it can never signal the
+	   dialog's completion. The dialog callback therefore records its own
+	   completion flag; reaching this branch means the datapad is running,
+	   so the dialog is definitively no longer running. */
 	if (g_frontDialogEditActive) {
-		modalStatus = FrontendScreen_GetModalStatus();
-		if (modalStatus != FRONTEND_SCREEN_MODAL_INACTIVE && modalStatus != FRONTEND_SCREEN_MODAL_DONE) {
-			return 0;
+		if (g_frontDialogEditCompleted) {
+			FrontendText_ResetGlyphScratch();
+			if (g_frontDialogEditOverlayTextWasEnabled) {
+				FrontendButton_EnableOverlayText();
+			}
+			memcpy(g_frontDialogEditText, g_frontDialogText0, g_frontDialogEditTextMaxChars);
+			g_frontDialogEditText[g_frontDialogEditTextMaxChars] = '\0';
+			FrontendText_SetGlyphGradientBg(g_frontDialogEditSavedGlyphGradientBg);
 		}
-
-		FrontendText_ResetGlyphScratch();
-		if (g_frontDialogEditOverlayTextWasEnabled) {
-			FrontendButton_EnableOverlayText();
-		}
-		memcpy(g_frontDialogEditText, g_frontDialogText0, g_frontDialogEditTextMaxChars);
-		g_frontDialogEditText[g_frontDialogEditTextMaxChars] = '\0';
-		FrontendText_SetGlyphGradientBg(g_frontDialogEditSavedGlyphGradientBg);
 		g_frontDialogEditActive = 0;
+		g_frontDialogEditCompleted = 0;
 		return 1;
 	}
 
@@ -531,6 +535,7 @@ int FrontendDialog_EditText(char* text, unsigned int maxChars, const char* promp
 
 	g_frontDialogEditText = text;
 	g_frontDialogEditTextMaxChars = maxChars;
+	g_frontDialogEditCompleted = 0;
 	if (!FrontendScreen_BeginModal(FrontendDialog_EditTextCallback, &rect)) {
 		if (g_frontDialogEditOverlayTextWasEnabled) {
 			FrontendButton_EnableOverlayText();
@@ -585,7 +590,24 @@ int FrontendDialog_EditTextCallback(int frameState) {
 		accepted = 1;
 	}
 
+	if (accepted) {
+		/* v36: save immediately, in the dialog frame itself. The old
+		   completion-branch copy (EditText, next datapad frame) depends
+		   on modal bookkeeping and proved unreliable for the nested
+		   datapad dialog; copying here guarantees the edited text
+		   reaches the taunt slot the moment the user confirms. The
+		   completion-branch copy is kept as a redundant safety net. */
+		if (g_frontDialogEditText != NULL) {
+			memcpy(g_frontDialogEditText, g_frontDialogText0, g_frontDialogEditTextMaxChars);
+			g_frontDialogEditText[g_frontDialogEditTextMaxChars] = '\0';
+		}
+		g_frontDialogEditCompleted = 1;
+	}
 	return accepted != 0;
+}
+
+int FrontendDialog_IsEditActive(void) {
+	return g_frontDialogEditActive;
 }
 
 // FUNCTION: XWA 0x55AF90
