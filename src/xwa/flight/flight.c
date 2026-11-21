@@ -39,6 +39,7 @@
 #include "xwa/flight/starfield.h"
 #include "xwa/flight/yard.h"
 #include "xwa/frontend/film_room.h"
+#include "xwa/frontend/frontend_mission_session.h"
 #include "xwa/frontend/frontend_color.h"
 #include "xwa/frontend/frontend_input.h"
 #include "xwa/frontend/frontend_mission.h"
@@ -6974,6 +6975,9 @@ int Flight_CheckMissionEndAndExitRequest(void) {
 			if (g_filmPlaybackMode == 2) {
 				g_flightMissionEndPending = 1;
 				g_flightExitRequest = 2;
+				return (uint8_t)g_flightMissionEndPending;
+			}
+			if (g_flightAbortToConcourseRequested) {
 				return (uint8_t)g_flightMissionEndPending;
 			}
 #ifdef XWA_MODERN

@@ -1607,8 +1607,9 @@ int Player_BindToAvailableCraft(unsigned int playerIdx, unsigned int previousObj
 			}
 		}
 	}
-	selectedCraft->laserLinkMode[0] = (uint8_t)g_players[playerIdx].savedCraftSettingsRaw[6];
-	selectedCraft->laserLinkMode[1] = (uint8_t)g_players[playerIdx].savedCraftSettingsRaw[7];
+	// Tekli atis zorla (1): ciftli (2) modda takilmayi onler
+	selectedCraft->laserLinkMode[0] = 1;
+	selectedCraft->laserLinkMode[1] = 1;
 
 	for (launcherIdx = 0; launcherIdx < 2u; ++launcherIdx) {
 		selectedCraft->warheadLauncherFlags[launcherIdx] =

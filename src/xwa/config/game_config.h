@@ -120,6 +120,8 @@ typedef struct GameConfig {
 extern GameConfig g_gameConfig;
 extern int g_configRestrictedOptionsModalActive;
 extern int g_configDatapadQuitConfirmed;
+extern int g_configDatapadInitialScreen;
+extern int g_configDatapadFromFilmDoor;
 extern int g_configAuxScreenFrameCount;
 extern int g_frontendSetupNeedsBaseRedraw;
 

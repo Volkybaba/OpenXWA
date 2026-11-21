@@ -2,6 +2,7 @@
 
 // GLOBAL: XWA 0x9F6020
 int g_frontendSinglePlayerFlightSessionActive;
+int g_flightAbortToConcourseRequested;
 // GLOBAL: XWA 0x7831AC
 int g_frontendQuickStartLaunchFlag;
 // GLOBAL: XWA 0x783FD8

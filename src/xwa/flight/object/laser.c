@@ -2130,6 +2130,12 @@ void laser_firelasersystem(unsigned int shooterObjIdx, int laserGroupIdx, int pl
 
 	firingPlayerIdx = playerIdx;
 	firedCount = 0;
+	/* Force single fire (alternating) for the player at fire time: dual (2)
+	 * gets stuck on gamepad (KEY_X unbound), so the mode can end up dual
+	 * mid-mission despite the mission-start force. AI fire is untouched. */
+	if (playerIdx != -1) {
+		g_curCraft->laserLinkMode[laserGroupIdx] = 1;
+	}
 	switch (g_curCraft->laserLinkMode[laserGroupIdx]) {
 		case 3:
 			slotStep = 1;

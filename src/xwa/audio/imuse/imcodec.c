@@ -1465,6 +1465,13 @@ void ImVimaDecodeAdpcm(ImVimaState* state, int16_t* dst, unsigned char* src, int
 
 		samplesLeft = sampleCount;
 		stepIndex = state->stepIndex[channel];
+		/* Tables hold 89 entries (0..88); a corrupt/misread header index would
+		   index past them (segfault). Clamp, independent of char signedness. */
+		if (stepIndex < 0) {
+			stepIndex = 0;
+		} else if (stepIndex > 88) {
+			stepIndex = 88;
+		}
 		sample = state->predictor[channel];
 		dstCur = dst + channel;
 		channelCount <<= 1;
@@ -1560,25 +1567,29 @@ void ImVimaDecodeAdpcm(ImVimaState* state, int16_t* dst, unsigned char* src, int
 // FUNCTION: XWA 0x588D23
 void ImVimaDecodeBlock(ImVimaState* state, int16_t* dst, char* src, unsigned int sampleCount) {
 	unsigned int channels;
+	unsigned int hdr;
+	const unsigned char* usrc;
 
+	/* Plain char is unsigned on aarch64, so the old "stepIndex < 0" stereo
+	   test never fired there (stereo misread as mono, step index up to 255).
+	   Parse the header from unsigned bytes instead. */
+	usrc = (const unsigned char*)src;
 	channels = 1;
-	state->stepIndex[0] = *src;
-	++src;
-	if (state->stepIndex[0] < 0) {
-		state->stepIndex[0] = (char)~state->stepIndex[0];
+	hdr = *usrc++;
+	if (hdr & 0x80u) {
+		hdr = ~hdr & 0x7fu;
 		++channels;
 	}
+	state->stepIndex[0] = (char)hdr;
 
-	state->predictor[0] =
-		(int16_t)((((unsigned int)*(unsigned short*)src & 0xffu) << 8) | (*(unsigned short*)src >> 8));
-	src += 2;
+	state->predictor[0] = (int16_t)(((unsigned int)usrc[0] << 8) | usrc[1]);
+	usrc += 2;
 	if (channels > 1) {
-		state->stepIndex[1] = *src;
-		++src;
-		state->predictor[1] =
-			(int16_t)((((unsigned int)*(unsigned short*)src & 0xffu) << 8) | (*(unsigned short*)src >> 8));
-		src += 2;
+		state->stepIndex[1] = (char)*usrc++;
+		state->predictor[1] = (int16_t)(((unsigned int)usrc[0] << 8) | usrc[1]);
+		usrc += 2;
 	}
+	src = (char*)usrc;
 
 	if (channels == 2 && state->predictor[0] == 0x1111 && state->stepIndex[1] == 100 &&
 		state->predictor[1] == 0x2222 && memcmp(src, "WVSM", 4u) == 0) {

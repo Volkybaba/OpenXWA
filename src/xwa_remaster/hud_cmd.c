@@ -153,7 +153,6 @@ static int cmd_model_genus(const XwaFlightObject* object) {
 		case XWA_SNAP_GENUS_MINE:
 		case XWA_SNAP_GENUS_ASTEROID:
 		case XWA_SNAP_GENUS_DEBRIS:
-		case XWA_SNAP_GENUS_DS_TUNNEL:
 			return 1;
 		default:
 			return 0;

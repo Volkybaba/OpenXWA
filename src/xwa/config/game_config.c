@@ -7,6 +7,7 @@
 #include "xwa/audio/cd_audio.h"
 #include "xwa/audio/music.h"
 #include "xwa/flight/flight.h"
+#include "xwa/flight/mission/mission.h"
 #include "xwa/frontend/cutscene.h"
 #include "xwa/frontend/frontend_button.h"
 #include "xwa/frontend/frontend_color.h"
@@ -56,6 +57,14 @@ GameConfig g_gameConfig;
 int g_configRestrictedOptionsModalActive;
 // GLOBAL: XWA 0xABD7C0
 int g_configDatapadQuitConfirmed;
+/* Volky: which config screen the datapad opens on (0 = main menu).
+ * The film door sets this to 15 (Cutscene Viewer) before opening the
+ * datapad modal, so the door shows the cutscenes. Reset to 0 after use. */
+int g_configDatapadInitialScreen;
+/* Volky: set by the film door — Back in the Cutscene Viewer then closes
+ * the datapad and returns straight to the concourse (hangar) instead of
+ * going to the config main menu. Reset after use. */
+int g_configDatapadFromFilmDoor;
 // GLOBAL: XWA 0x7829A0
 int g_menuCursorRow;
 // GLOBAL: XWA 0xB0C784
@@ -176,9 +185,9 @@ int Config_MainMenuScreen(void) {
 #endif
 
 #ifdef XWA_MODERN
-	rowCount = g_configRestrictedOptionsModalActive ? 8 : 11;
+	rowCount = g_configRestrictedOptionsModalActive ? 9 : 11;
 #else
-	rowCount = g_configRestrictedOptionsModalActive ? 7 : 10;
+	rowCount = g_configRestrictedOptionsModalActive ? 8 : 10;
 #endif
 	y = 215 - ((25 * rowCount) >> 1);
 	keyState = (char)Config_GetMenuNavKey();
@@ -209,7 +218,7 @@ int Config_MainMenuScreen(void) {
 
 	y += 25;
 #ifdef XWA_MODERN
-	FrontendText_Draw(10, "OpenXWA " OPENXWA_VERSION, 35, 420, g_colorPaleBlue);
+	FrontendText_Draw(10, "Volkyxwall 1.0.7", 35, 420, g_colorPaleBlue);
 #else
 	memcpy(versionText, "2.02", sizeof(versionText));
 	sprintf(g_frontendScratchBuffer, "%s %s", FrontendString_Get(STR_CONFIG_VERSION), versionText);
@@ -428,6 +437,33 @@ int Config_MainMenuScreen(void) {
 	}
 	if (buttonPressed) {
 		return 1;
+	}
+
+	if (g_configRestrictedOptionsModalActive) {
+		y += 25;
+		++rowIndex;
+#ifdef XWA_MODERN
+		text = "Abort Mission";
+#else
+		text = FrontendString_Get(STR_ABORT);
+#endif
+		titleWidth = FrontendText_MeasureWidth(text, 20);
+		textX = g_configMenuCenterX - (int)(titleWidth >> 1);
+		buttonPressed = FrontendButton_DrawMenuButton(textX, y, text, 20, g_colorPaleBlue, 31, 0, "settingsound");
+		if (g_menuCursorRow == rowIndex) {
+			FrontendText_Draw(20, text, textX, y, g_colorGreen);
+			if (keyState == CONFIG_KEY_ENTER) {
+				FrontendSound_PlayUISound("settingsound", 1, 0, 255, 12 * g_gameConfig.sfxDatapadVolume, 63);
+				Keyboard_FlushCharBuffer();
+				keyState = 0;
+				buttonPressed = 1;
+			}
+		}
+		if (buttonPressed) {
+			g_flightMissionEndPending = 1;
+			g_flightAbortToConcourseRequested = 1;
+			return 1;
+		}
 	}
 
 	y += 25;
@@ -2174,6 +2210,10 @@ int Config_CutsceneViewerScreen(void) {
 		Keyboard_FlushCharBuffer();
 		if ((unsigned int)g_cutsceneViewerSelectedRow > 0) {
 			--g_cutsceneViewerSelectedRow;
+			/* Volky: keep the selected row visible — scroll up when it leaves the 5-row window. */
+			if ((unsigned int)g_cutsceneViewerSelectedRow < (unsigned int)g_cutsceneViewerScrollRow) {
+				g_cutsceneViewerScrollRow = g_cutsceneViewerSelectedRow;
+			}
 		}
 	} else if (menuNavKey == CONFIG_KEY_VK_DOWN) {
 		FrontendSound_PlayUISound("configsound", 1, 0, 255, 12 * g_gameConfig.sfxDatapadVolume, 63);
@@ -2181,6 +2221,10 @@ int Config_CutsceneViewerScreen(void) {
 		if ((unsigned int)g_cutsceneViewerSelectedRow <
 			(unsigned int)(g_cutsceneViewerPlayableRowCount - 1)) {
 			++g_cutsceneViewerSelectedRow;
+			/* Volky: keep the selected row visible — scroll down when it leaves the 5-row window. */
+			if ((unsigned int)g_cutsceneViewerSelectedRow >= (unsigned int)(g_cutsceneViewerScrollRow + 5)) {
+				g_cutsceneViewerScrollRow = g_cutsceneViewerSelectedRow - 4;
+			}
 		}
 	}
 
@@ -2359,6 +2403,12 @@ int Config_CutsceneViewerScreen(void) {
 												 g_colorPaleBlue, 20, zero, "settingsound");
 	if (menuNavKey == CONFIG_KEY_ESCAPE || requiredDisk) {
 		Keyboard_FlushCharBuffer();
+		if (g_configDatapadFromFilmDoor) {
+			/* Volky: opened from the film door — Back closes the datapad
+			 * and returns straight to the concourse (hangar). */
+			g_configDatapadFromFilmDoor = 0;
+			return 1;
+		}
 		g_pendingMenuScreen = zero;
 		g_menuCursorRow = 7;
 	}
@@ -2376,7 +2426,8 @@ static void Config_FinishOptionsDatapadOpen(void) {
 	g_configMenuCenterX = 320;
 	g_menuCursorRow = 0;
 	g_configMenuScrollIndex = 0;
-	g_pendingMenuScreen = 0;
+	g_pendingMenuScreen = g_configDatapadInitialScreen;
+	g_configDatapadInitialScreen = 0;
 	g_configExitConfirmPending = 0;
 	g_frontendSetupNeedsBaseRedraw = 1;
 	Keyboard_FlushCharBuffer();
@@ -4331,10 +4382,25 @@ int Config_DrawOptionTextEdit(char* text, unsigned int maxLen, int unused, char*
 	(void)unused;
 #ifdef XWA_MODERN
 	if (g_configTextEditRunActive) {
-		if (!FrontendDialog_EditText(text, maxLen, label)) {
+		if (FrontendDialog_EditText(text, maxLen, label)) {
+			/* Edit dialog just completed (Enter/Esc): the confirming input is
+			   consumed. Neutralize this frame's nav key and drop any queued
+			   input so the confirmation cannot also trigger Geri/Back and
+			   leave General Options. The edited row is drawn normally below. */
+			g_configTextEditRunActive = 0;
+			*keyState = 0;
+			Keyboard_FlushCharBuffer();
+			FrontendMouse_ClearClicks();
+		} else if (!FrontendDialog_IsEditActive()) {
+			/* No edit dialog is actually running (orphaned flag, e.g.
+			   BeginModal failed): clear it so the row draws normally
+			   instead of skipping it forever. Note: this must check the
+			   edit dialog itself, not any modal — the options datapad is
+			   itself a modal, so a generic modal check is always true. */
+			g_configTextEditRunActive = 0;
+		} else {
 			return 0;
 		}
-		g_configTextEditRunActive = 0;
 	}
 #endif
 

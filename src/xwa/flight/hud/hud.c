@@ -8978,6 +8978,15 @@ void Hud_SetHudViewState(int hudViewState, int playerIdx) {
 	}
 }
 
+/* Bounded append for the fixed-size HUD target text buffers (v5). */
+static void Hud_AppendBounded(char* dst, size_t dstSize, const char* src) {
+	size_t len = strlen(dst);
+	if (len + 1 >= dstSize) {
+		return;
+	}
+	snprintf(dst + len, dstSize - len, "%s", src);
+}
+
 // FUNCTION: XWA 0x473590
 void Hud_UpdateTargetInfoCache(void) {
 	uint32_t shieldTotal;
@@ -9037,7 +9046,7 @@ void Hud_UpdateTargetInfoCache(void) {
 			FlightText_AppendScratchChar(')');
 		}
 	}
-	strcpy(g_hudTargetNameText, g_flightTextScratchBuffer);
+	snprintf(g_hudTargetNameText, sizeof(g_hudTargetNameText), "%s", g_flightTextScratchBuffer);
 
 	if (g_objectTable[targetObjIdx].genusId != 0) {
 		const char* statusText;
@@ -9070,27 +9079,30 @@ void Hud_UpdateTargetInfoCache(void) {
 						ModelIndex modelIndex;
 
 						if (statusText[0] != '\0') {
-							strcpy(g_hudTargetStatusText, statusText);
-							strcat(g_hudTargetStatusText, ", ");
+							snprintf(g_hudTargetStatusText, sizeof(g_hudTargetStatusText), "%s", statusText);
+							Hud_AppendBounded(g_hudTargetStatusText, sizeof(g_hudTargetStatusText), ", ");
 						}
 
 						if (g_objectTable[targetCraft->carriedObjectIndex].objectType == OBJ_None ||
 							(modelIndex = GetModelIndexFromType(
 								 g_objectTable[targetCraft->carriedObjectIndex].objectType)) == 0xffffu) {
-							strcat(g_hudTargetStatusText, g_strWarheadUnknown);
+							Hud_AppendBounded(g_hudTargetStatusText, sizeof(g_hudTargetStatusText), g_strWarheadUnknown);
 						} else {
-							strcat(g_hudTargetStatusText, g_modelDefs[modelIndex].nameLong);
+							Hud_AppendBounded(g_hudTargetStatusText, sizeof(g_hudTargetStatusText),
+											  g_modelDefs[modelIndex].nameLong);
 						}
 						statusText = NULL;
-						strcat(g_hudTargetStatusText, " : ");
+						Hud_AppendBounded(g_hudTargetStatusText, sizeof(g_hudTargetStatusText), " : ");
 						carriedCraft = g_objectTable[targetCraft->carriedObjectIndex].mobj->pCraft;
 						if (carriedCraft->cargoIndex != 0xffu) {
-							strcat(g_hudTargetStatusText,
-								   g_missionHeader.body.globalCargos[carriedCraft->cargoIndex].name);
+							Hud_AppendBounded(g_hudTargetStatusText, sizeof(g_hudTargetStatusText),
+											  g_missionHeader.body.globalCargos[carriedCraft->cargoIndex].name);
 						} else if (carriedCraft->specialCargoName[0] != '\0') {
-							strcat(g_hudTargetStatusText, carriedCraft->specialCargoName);
+							Hud_AppendBounded(g_hudTargetStatusText, sizeof(g_hudTargetStatusText),
+											  carriedCraft->specialCargoName);
 						} else {
-							strcat(g_hudTargetStatusText, g_strPanelStrings[PANEL_STRING_NO_CARGO]);
+							Hud_AppendBounded(g_hudTargetStatusText, sizeof(g_hudTargetStatusText),
+											  g_strPanelStrings[PANEL_STRING_NO_CARGO]);
 						}
 					}
 				}
@@ -9098,7 +9110,7 @@ void Hud_UpdateTargetInfoCache(void) {
 		}
 
 		if (statusText != NULL) {
-			strcpy(g_hudTargetStatusText, statusText);
+			snprintf(g_hudTargetStatusText, sizeof(g_hudTargetStatusText), "%s", statusText);
 		}
 	} else {
 		memset(g_hudTargetStatusText, 0, sizeof(g_hudTargetStatusText));
@@ -19070,7 +19082,17 @@ void Mfd_DrawCommandMenuPage(int mfdSide, void* mfdSurface) {
 			Mfd_BuildScratchCraftListName(
 				(uint16_t)g_players[g_localPlayer].mfd.commandMenu.primaryTargetObjIdx[targetSlot],
 				g_localPlayer, 0);
-			strcpy(primaryLabel, g_flightTextScratchBuffer);
+			/* Label rows are 30 bytes; mission flight-group names can be
+			   longer, and the old strcpy overflowed the row (fortify
+			   abort in Mfd_DrawCommandMenuPage on the first flight frame). */
+			{
+				size_t labelLen = strlen(g_flightTextScratchBuffer);
+				if (labelLen > 29) {
+					labelLen = 29;
+				}
+				memcpy(primaryLabel, g_flightTextScratchBuffer, labelLen);
+				primaryLabel[labelLen] = '\0';
+			}
 		}
 	}
 
@@ -19156,7 +19178,15 @@ void Mfd_DrawCommandMenuPage(int mfdSide, void* mfdSurface) {
 			 ++targetSlot) {
 			Hud_AppendObjectDisplayName(
 				(uint16_t)g_players[g_localPlayer].mfd.commandMenu.secondaryTargetObjIdx[targetSlot], 3);
-			strcpy(g_mfdCommandSecondaryTargetLabels[targetSlot], g_flightTextScratchBuffer);
+			/* Same 30-byte row limit as the primary labels above. */
+			{
+				size_t labelLen = strlen(g_flightTextScratchBuffer);
+				if (labelLen > 29) {
+					labelLen = 29;
+				}
+				memcpy(g_mfdCommandSecondaryTargetLabels[targetSlot], g_flightTextScratchBuffer, labelLen);
+				g_mfdCommandSecondaryTargetLabels[targetSlot][labelLen] = '\0';
+			}
 		}
 	}
 
@@ -19415,7 +19445,7 @@ void Mfd_InitCommandMenuRuntimeState(void) {
 
 	label = &g_mfdCommandPrimaryTargetLabels[1];
 	for (menuText = &g_strFlightCmdMainMenu[1]; menuText <= &g_strFlightCmdMainMenu[6]; ++menuText) {
-		strcpy(*label, *menuText);
+		snprintf(*label, sizeof(*label), "%s", *menuText);
 		++label;
 	}
 

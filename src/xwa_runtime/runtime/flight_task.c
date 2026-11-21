@@ -36,6 +36,7 @@
 #include "xwa/flight/starfield.h"
 #include "xwa/flight/yard.h"
 #include "xwa/frontend/flight_loading.h"
+#include "xwa/frontend/frontend_mission_session.h"
 #include "xwa/frontend/mission_setup.h"
 #include "xwa/input/dinput.h"
 #include "xwa/input/forcefeedback.h"
@@ -741,6 +742,13 @@ static void XwaFlightTask_EnterHangarReady(XwaFlightTaskHangarContinuation conti
 }
 
 static int XwaFlightTask_EnterRequestedHangarReady(XwaFlightTaskHangarContinuation continuation) {
+	/* v29: Abort overrides any pending hangar request (stale or mission-set).
+	   Without this, the task loop hijacks an Abort into hangar-ready, and
+	   hangar Launch restarts the mission from spawn instead of reaching
+	   CompleteLaunchSession's concourse route (J52 symptom). */
+	if (g_flightAbortToConcourseRequested) {
+		return 0;
+	}
 	if (!Hangar_TakeReadyLoopRequest()) {
 		return 0;
 	}
@@ -1692,6 +1700,16 @@ void XwaFlightTask_Tick(void) {
 				restartMission = g_xwaFlightTaskRestartMission;
 				if (!directWorldCleanup && g_flightExitRequest == 2) {
 					restartMission = !g_provingGroundsModeActive || g_pilotData.meleeMissionIndex == -1;
+				}
+				/* v30: Abort overrides the Death Star exitRequest==2 restart.
+				   Death Star missions set exitRequest=2 when the primary goal
+				   is incomplete, which forces an in-place mission restart
+				   (ship at spawn, no menu) instead of completing the flight.
+				   Abort must escape to concourse via CompleteLaunchSession's
+				   flag, so it cancels the restart. Stock Death Star retry
+				   (non-abort failures) is unchanged. */
+				if (g_flightAbortToConcourseRequested) {
+					restartMission = 0;
 				}
 				if (!directWorldCleanup) {
 					ForceFeedback_StopAllEffects();
