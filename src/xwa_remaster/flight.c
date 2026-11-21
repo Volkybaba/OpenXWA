@@ -21,6 +21,7 @@
 #include "xwa_remaster/ship.h"
 #include "xwa_remaster/sky_stars.h"
 #include "xwa_remaster/xwa_remaster.h"
+#include "xwa/flight/hangar.h"
 #include "xwa_runtime/runtime/presentation.h"
 #include "xwa_runtime/timing/host_clock.h"
 
@@ -2356,11 +2357,13 @@ static void fl_derive_object_billboard(const XwaFlightObject* f, uint32_t snap_i
 									   const float history_world_to_view[9]) {
 	const XwaFlightCamera* cam = &s.snap->flight_camera;
 	FlBillboardGeometry geometry;
-	if (!fl_object_billboard_geometry(f, cam, s.crows, &geometry))
+	if (!fl_object_billboard_geometry(f, cam, s.crows, &geometry)) {
 		return;
+	}
 	XwaAssetRef ref;
-	if (!fl_resolve_type_frame(assets, f->object_type, f->type_specific_0, &ref))
+	if (!fl_resolve_type_frame(assets, f->object_type, f->type_specific_0, &ref)) {
 		return;
+	}
 	float previous_corners[4][3];
 	const float (*previous_corners_ptr)[3] = NULL;
 	const XwaFlightObject* pf = fl_bb_previous_object(snap_index);
@@ -2629,6 +2632,13 @@ static void fl_derive_lens_flares(const XwaSnapshot* snap, XwaRemasterAssets* as
  * view depth — the LENS pass has no depth test; occlusion comes from
  * the anchor's depth-buffer visibility. */
 static void fl_submit_lens_flares(const XwaSnapshot* snap, const XwaRemasterFlightView* flight_view) {
+	/* 1.0.9: lens flare OFF — the flare trains mirror every bright source
+	 * around the screen center (ring 5 is the exact mirrored copy), which
+	 * reads as "everything drawn with its reflection". The classic
+	 * lensFlare config option is NOT honored by the HD renderer, so the
+	 * only way to turn flares off is here. */
+	(void)snap; (void)flight_view;
+	return;
 	if (!s.lens_ok || s.lens_src_count == 0) {
 		return;
 	}
@@ -3051,7 +3061,10 @@ static int fl_map_submit_object(const XwaFlightMapObject* map_object, const XwaF
 	instance.cull_mode = is_bolt ? AERON_CULL_NONE : AERON_CULL_BACK;
 	if (is_bolt) {
 		instance.shadow_flags = AERON_SCENE_INSTANCE_NO_CAST_SHADOW | AERON_SCENE_INSTANCE_NO_RECEIVE_SHADOW;
-		instance.velocity_stamp = 1;
+		/* 1.1.4: velocity stamp OFF — the stamp's full strip was leaking
+		 * to screen as a second (thick) strip; motion blur is off anyway. */
+		instance.velocity_stamp = 0;
+		instance.first_prim_only = 1;
 		if (prepared.runtime_opt)
 			instance.base_color_emissive_strength = XwaRemasterShip_OptProjectileEmissiveStrength();
 	}
@@ -3283,7 +3296,7 @@ static void fl_draw_present(AeronCommandBuffer* cmd, AeronRenderPass* pass, Aero
 	static const float present_tint[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 	AeronScenePresentChain_Draw(chain, pass, s.present_scene_tex, s.present_sampler, s.present_bloom_tex,
 								s.map_present ? 0.0f : AeronSceneBloom_Intensity(), s.rt_w, s.rt_h,
-								/*bar_y_uv=*/1.0f, present_tint, /*src_coverage=*/0);
+								/*bar_y_uv=*/1.0f, present_tint, /*src_coverage=*/0, /*flip_y=*/1);
 	if (s.suppress_hud) {
 		return;
 	}
@@ -4143,7 +4156,8 @@ AeronTexture* XwaRemasterFlight_Render(AeronCommandBuffer* cmd, const XwaSnapsho
 			model_name_override = snap->cockpit.exterior_name;
 		}
 		FlPreparedMesh prepared;
-		if (!fl_prepare_object_mesh(f, model_name_override, &prepared)) {
+		const int mesh_found = fl_prepare_object_mesh(f, model_name_override, &prepared);
+		if (!mesh_found) {
 			continue;
 		}
 
@@ -4202,9 +4216,15 @@ AeronTexture* XwaRemasterFlight_Render(AeronCommandBuffer* cmd, const XwaSnapsho
 			 * alignment can leave the broad face wound either way. The
 			 * BLEND-classified ribbon never enters the depth prepass, so
 			 * its motion vectors come from the alpha-tested velocity
-			 * STAMP sweep instead. */
+			 * STAMP sweep instead. The bolt OPT's prim 0 is a single
+			 * ribbon (DIAG-GEO); the X users saw is NOT tearing
+			 * (the v91 VSYNC lib did not remove it) and NOT a
+			 * second mesh draw (DIAG4/DIAG5: one draw per bolt
+			 * per frame) — see DIAG6. */
 			inst.cull_mode = AERON_CULL_NONE;
-			inst.velocity_stamp = 1;
+			/* 1.1.4: velocity stamp OFF — see above. */
+			inst.velocity_stamp = 0;
+			inst.first_prim_only = 1;
 			s.bolts[s.bolt_count++] = inst;
 		} else {
 			AeronScene_AddMeshInstance(s.scene, &inst);
@@ -4333,6 +4353,17 @@ AeronTexture* XwaRemasterFlight_Render(AeronCommandBuffer* cmd, const XwaSnapsho
 	/* Lens-flare trains (LENS stage — the scene draws them after its
 	 * color passes with GPU anchor occlusion, before bloom). */
 	fl_submit_lens_flares(snap, &flight_view);
+
+	/* DIAG7: per-frame live-bolt count (main view). TEMPORARY: remove
+	 * before any 1.1.1 release. */
+	{
+		static unsigned diag7_frame = 0;
+		++diag7_frame;
+		if (s.bolt_count > 0) {
+			Aeron_LogInfo("xwa.diag", "DIAG7 frame=%u bolts=%u bb=%u",
+					diag7_frame, s.bolt_count, s.bb_count);
+		}
+	}
 
 	if (!AeronScene_Render(s.scene, cmd)) {
 		AeronScene_SetPassHook(s.scene, AERON_SCENE_HOOK_BEFORE_OPAQUE, NULL, NULL);

@@ -820,6 +820,11 @@ int TechLibrary_DrawCraftSpecPanel(void) {
 	} else if (pageFrame >= TECH_LIBRARY_PAGE_SLIDE_OUT_START) {
 		topClipOffset = pageFrame - TECH_LIBRARY_PAGE_SLIDE_OUT_START;
 	}
+	/* Volky: disable the per-row slide clip — it corrupts the spec text on
+	   Vulkan (topClipOffset is uninitialized outside slide-in/out, and the
+	   thin clip rect reduces glyphs to horizontal dashes). Draw rows full. */
+	topClipOffset = 0;
+	bottomClipTrim = 0;
 	textColor = g_colorPaleBlue;
 
 	switch (pageIndex) {

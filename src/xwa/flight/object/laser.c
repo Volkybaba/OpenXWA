@@ -1654,6 +1654,10 @@ int laser_createprojectile(unsigned int firerObjIdx, int weaponSlotIdx, ObjectTy
 	int spawnZ;
 	unsigned int projectileTypeIdx;
 
+	/* DIAG7: one line per projectile spawn. */
+	Aeron_LogInfo("xwa.diag", "DIAG7 SPAWN slot=%d type=%d player=%d",
+		      weaponSlotIdx, (int)projectileType, playerIdx);
+
 	if (playerIdx != -1) {
 		uint16_t slotEnd;
 
@@ -2130,6 +2134,12 @@ void laser_firelasersystem(unsigned int shooterObjIdx, int laserGroupIdx, int pl
 
 	firingPlayerIdx = playerIdx;
 	firedCount = 0;
+	/* Force single fire (alternating) for the player at fire time: dual (2)
+	 * gets stuck on gamepad (KEY_X unbound), so the mode can end up dual
+	 * mid-mission despite the mission-start force. AI fire is untouched. */
+	if (playerIdx != -1) {
+		g_curCraft->laserLinkMode[laserGroupIdx] = 1;
+	}
 	switch (g_curCraft->laserLinkMode[laserGroupIdx]) {
 		case 3:
 			slotStep = 1;
@@ -2460,6 +2470,18 @@ void laser_fireplayerweapon(int playerIdx) {
 					unsigned int selectedWarhead;
 
 					selectedWarhead = g_players[playerIdx].selectedWarhead;
+					/* 1.1.0: force single fire HERE — the 1.0.7 force lives
+					 * inside laser_firelasersystem, but the mode-4 branch
+					 * below is checked BEFORE that call, so mode 4 fired
+					 * both groups (2 bolts, X) despite 1.0.7. Forcing the
+					 * selected warhead's mode to 1 here makes the mode-4
+					 * branch unreachable: one press = one group = one bolt. */
+					craft->laserLinkMode[selectedWarhead] = 1;
+					/* DIAG7: one line per fire that reaches the launch code. */
+					Aeron_LogInfo("xwa.diag", "DIAG7 FIRE tick=%d mode=%u warhead=%u",
+						      lockstepTimestamp,
+						      craft->laserLinkMode[selectedWarhead],
+						      selectedWarhead);
 					if (craft->laserLinkMode[selectedWarhead] == 4) {
 						uint8_t savedMode0;
 						uint8_t savedMode1;

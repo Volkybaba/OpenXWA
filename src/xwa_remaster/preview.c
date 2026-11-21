@@ -215,11 +215,14 @@ AeronTexture* XwaRemasterPreview_Render(AeronCommandBuffer* cmd, const XwaModelP
 		memcpy(inst.prev_transform, inst.transform, sizeof inst.transform);
 		inst.no_local_lights = 1; /* studio sun + ambient only */
 		inst.zero_velocity = 1;
-		/* The classic renderer never rasterizes back-facing OPT polygons
-		 * (CPU facing test in RenderScene_BuildMeshVisibleFaces); without
-		 * culling, near-coincident interior faces z-fight the hull.
-		 * Cooked glbs are CCW-front; BACK keeps the hull solid under
-		 * this projection (verified empirically). */
+		/* v83: CULL_BACK restored — the v81 CULL_NONE test only treated the
+		 * symptom (samplers all bound to unit 0 made the hull invisible);
+		 * with the sampler-binding fix the hull renders, and BACK keeps it
+		 * solid: the classic renderer never rasterizes back-facing OPT
+		 * polygons (CPU facing test in RenderScene_BuildMeshVisibleFaces);
+		 * without culling, near-coincident interior faces z-fight the hull.
+		 * Cooked glbs are CCW-front; BACK keeps the hull solid under this
+		 * projection (verified empirically). */
 		inst.cull_mode = AERON_CULL_BACK;
 		AeronScene_AddMeshInstance(s.scene, &inst);
 
@@ -278,9 +281,10 @@ AeronTexture* XwaRemasterPreview_Render(AeronCommandBuffer* cmd, const XwaModelP
 	static const float tint[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 	AeronScenePresentChain_Draw(s.chain, pp, scene_tex, s.chain_sampler, bloom_tex, bloom_intensity,
 								PREVIEW_RT_W, PREVIEW_RT_H, /*bar_y_uv=*/1.0f, tint,
-								/*src_coverage=*/1);
+								/*src_coverage=*/1, /*flip_y=*/1);
 	Aeron_EndRenderPass(pp);
-	return Aeron_RenderTargetGetTexture(s.present[slot]);
+	AeronTexture* preview_tex = Aeron_RenderTargetGetTexture(s.present[slot]);
+	return preview_tex;
 }
 
 void XwaRemasterPreview_Shutdown(void) {

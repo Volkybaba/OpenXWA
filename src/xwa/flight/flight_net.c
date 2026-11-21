@@ -1861,6 +1861,7 @@ int FlightNet_SampleAndSendInput(void) {
 	uint8_t* batchBytes;
 	InputFrame* inserted;
 
+
 	FlightInput_Read(-2);
 
 	g_currentInputFrame.key = g_actionKey;

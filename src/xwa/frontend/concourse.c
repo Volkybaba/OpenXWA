@@ -714,10 +714,9 @@ int Concourse_Update(int frameCounter) {
 		}
 
 		Concourse_LoadNextTourMission();
-		if (g_frontendMissionLoaded && (unsigned int)g_currentMissionId < 7u) {
-			FrontendScreen_SetCallbacks(FamilyTransportRoom_Update, FamilyTransportRoom_Exit);
-			return 0;
-		}
+		/* imp: no auto-bounce to the family room; the concourse stays open
+		   during family missions so its doors stay selectable. The family
+		   room is still reachable via the Family Transport hotspot. */
 
 		musicState = MUSIC_STATE_FRONTEND_1200;
 		if (g_gameConfig.datapadMusicEnabled) {
@@ -962,37 +961,43 @@ int Concourse_Update(int frameCounter) {
 		}
 	}
 
-	if (g_filmFeatureEnabled) {
-		FrontImage_GetResourceRect("filmdoor", &rect);
-		FrontendDraw_RectOffsetXY(&rect, 536, 286);
-		if (FrontendDraw_PointInRect(&rect, outX, outY)) {
-			if (!FrontImage_GetSpriteFrame("filmdoor")) {
-				FrontendSound_PlayUISound("tourdooropen", 1, 0, 255, 12 * g_gameConfig.sfxDatapadVolume, 63);
-			}
-
-			FrontImage_AdvanceSpriteFrame("filmdoor", 0);
-			if (FrontendMouse_GetLeftClick() || FrontendMouse_GetRightClick()) {
-				FrontendScreen_SetCallbacks(FilmRoom_Update, FilmRoom_Exit);
-			}
-
-			{
-				int width;
-
-				width = FrontendText_MeasureWidth("Film Room", 15);
-				rect.left = 300 - (width >> 1);
-				rect.top = 400;
-				rect.right = width + rect.left + 40;
-				rect.bottom = 440;
-				FrontendDraw_FillRectTranslucent(&rect, 0, 0, (unsigned int)g_concourseLabelColor);
-				FrontendText_DrawCentered(15, FrontendString_Get(STR_CONCOURSE_FILM_ROOM), &rect, 0xffff);
-			}
-		} else {
-			if (FrontImage_GetSpriteFrame("filmdoor") == 1) {
-				FrontendSound_PlayUISound("tourdoorclose", 1, 0, 255, 12 * g_gameConfig.sfxDatapadVolume, 63);
-			}
-
-			FrontImage_RewindSpriteFrame("filmdoor", 0);
+	/* Volky: film door always active (g_filmFeatureEnabled is never set
+	 * in this port, so the door was dead). Opens the Film Room. */
+	FrontImage_GetResourceRect("filmdoor", &rect);
+	FrontendDraw_RectOffsetXY(&rect, 536, 286);
+	if (FrontendDraw_PointInRect(&rect, outX, outY)) {
+		if (!FrontImage_GetSpriteFrame("filmdoor")) {
+			FrontendSound_PlayUISound("tourdooropen", 1, 0, 255, 12 * g_gameConfig.sfxDatapadVolume, 63);
 		}
+
+		FrontImage_AdvanceSpriteFrame("filmdoor", 0);
+		if (FrontendMouse_GetLeftClick() || FrontendMouse_GetRightClick()) {
+			/* Volky: open the datapad modal on the Cutscene Viewer (screen 15),
+			 * the same "View Cutscenes" screen as the main menu. */
+			g_configDatapadInitialScreen = 15;
+			g_configDatapadFromFilmDoor = 1;
+			g_configDatapadQuitConfirmed = 0;
+			FrontendDraw_RectAssign(&rect, 0, 0, 639, 479);
+			FrontendScreen_BeginModal(Config_OptionsDatapadUpdate, &rect);
+		}
+
+		{
+			int width;
+
+			width = FrontendText_MeasureWidth("Film Room", 15);
+			rect.left = 300 - (width >> 1);
+			rect.top = 400;
+			rect.right = width + rect.left + 40;
+			rect.bottom = 440;
+			FrontendDraw_FillRectTranslucent(&rect, 0, 0, (unsigned int)g_concourseLabelColor);
+			FrontendText_DrawCentered(15, FrontendString_Get(STR_CONCOURSE_FILM_ROOM), &rect, 0xffff);
+		}
+	} else {
+		if (FrontImage_GetSpriteFrame("filmdoor") == 1) {
+			FrontendSound_PlayUISound("tourdoorclose", 1, 0, 255, 12 * g_gameConfig.sfxDatapadVolume, 63);
+		}
+
+		FrontImage_RewindSpriteFrame("filmdoor", 0);
 	}
 
 	if (!(frame % 3)) {

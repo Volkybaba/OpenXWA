@@ -39,6 +39,7 @@
 #include "xwa/flight/starfield.h"
 #include "xwa/flight/yard.h"
 #include "xwa/frontend/film_room.h"
+#include "xwa/frontend/frontend_mission_session.h"
 #include "xwa/frontend/frontend_color.h"
 #include "xwa/frontend/frontend_input.h"
 #include "xwa/frontend/frontend_mission.h"
@@ -140,7 +141,6 @@ void FlightDebug_SetJoystickTraceEnabled(int enabled) {
 	g_modernJoystickTraceEnabled = enabled;
 	memset(g_modernJoystickInputSamples, 0, sizeof(g_modernJoystickInputSamples));
 	g_modernJoystickInputSampleCursor = 0;
-	Aeron_LogInfo("xwa.input.trace", "JOYTRACE state=%s", enabled ? "on" : "off");
 }
 
 void FlightDebug_CaptureJoystickInputSample(int timestamp) {
@@ -199,20 +199,6 @@ static void FlightDebug_LogJoystickIntegration(const ModernJoystickIntegrationTr
 		sample = &fallback;
 	}
 
-	Aeron_LogInfo("xwa.input.trace",
-				  "JOYTRACE ts=%d dt=%u joy=%d sdl=%d:%d,%d:%d,%d:%d wm=%u,%u,%u xwa=%d,%d,%d "
-				  "pk=%d,%d,%d sc_ypr=%d,%d,%d tgt_ypr=%d,%d,%d sm_ypr=%d,%d,%d step_ypr=%d,%d,%d "
-				  "ang_pyr=%u,%u,%u>%u,%u,%u",
-				  trace->timestamp, (unsigned int)trace->elapsedTicks, sample->joystickValid,
-				  sample->bridge.sourceAxisX, sample->bridge.sourceValueX, sample->bridge.sourceAxisY,
-				  sample->bridge.sourceValueY, sample->bridge.sourceAxisR, sample->bridge.sourceValueR,
-				  sample->bridge.winmmX, sample->bridge.winmmY, sample->bridge.winmmR, sample->prePackX,
-				  sample->prePackY, sample->prePackR, sample->packedX, sample->packedY, sample->packedR,
-				  trace->scaledYaw, trace->scaledPitch, trace->scaledRoll, trace->targetYaw,
-				  trace->targetPitch, trace->targetRoll, trace->smoothedYaw, trace->smoothedPitch,
-				  trace->smoothedRoll, trace->stepYaw, trace->stepPitch, trace->stepRoll,
-				  (unsigned int)trace->oldPitch, (unsigned int)trace->oldYaw, (unsigned int)trace->oldRoll,
-				  (unsigned int)trace->newPitch, (unsigned int)trace->newYaw, (unsigned int)trace->newRoll);
 }
 
 void Flight_ModernResetHighRateIntegration(void) {
@@ -2446,6 +2432,7 @@ uint16_t FlightInput_Read(int playerIdxOrSentinel) {
 	int axisR;
 	int keyMods;
 	volatile int joystickButtons;
+
 
 	if ((playerIdxOrSentinel == g_localPlayer || playerIdxOrSentinel == -2) && g_inHangarReady != 0 &&
 		g_filmPlaybackMode == 0) {
@@ -6974,6 +6961,9 @@ int Flight_CheckMissionEndAndExitRequest(void) {
 			if (g_filmPlaybackMode == 2) {
 				g_flightMissionEndPending = 1;
 				g_flightExitRequest = 2;
+				return (uint8_t)g_flightMissionEndPending;
+			}
+			if (g_flightAbortToConcourseRequested) {
 				return (uint8_t)g_flightMissionEndPending;
 			}
 #ifdef XWA_MODERN

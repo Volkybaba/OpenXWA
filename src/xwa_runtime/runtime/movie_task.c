@@ -325,6 +325,11 @@ void XwaMovieTask_Tick(void) {
 	}
 	FrontendFileStream_ServiceSlots();
 	XwaFrontendTask_ServiceFrameSystems();
+	/* Movie screenshot hook (v41): same edge-detected Fn/action-232 hook as the
+	 * concourse (v40). ServiceFrameSystems just refreshed the joystick state,
+	 * and the main loop still runs Aeron_Present every frame, so the armed
+	 * capture downloads the composited video frame. */
+	XwaFrontendTask_CheckScreenshotHook();
 	input = Aeron_InputSnapshot();
 	if (input != NULL && !input->has_focus && XwaPort_EverHadFocus()) {
 		if (!g_xwaMovieTask.playback_paused) {

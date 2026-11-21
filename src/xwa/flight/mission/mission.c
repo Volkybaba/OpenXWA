@@ -247,6 +247,7 @@ enum {
 	MISSION_FORMAT_XWA_V16 = 16,
 	MISSION_FORMAT_XWA_V17 = 17,
 	MISSION_FORMAT_XWA_V18 = 18,
+	MISSION_FORMAT_XWA_V20 = 20,
 	MISSION_BRIEFING_TEAM_COUNT = 2,
 	MISSION_BRIEFING_LABEL_COUNT = 192,
 	MISSION_BRIEFING_ICON_COUNT = 10,
@@ -495,15 +496,16 @@ int Mission_LoadFile(char* fileName) {
 	g_missionFormatVersion = formatVersion;
 	if (formatVersion != 14 && formatVersion != -1) {
 		if (formatVersion != 12 && formatVersion != 15 && formatVersion != 17 && formatVersion != 16 &&
-			formatVersion != 18) {
+			formatVersion != 18 && formatVersion != MISSION_FORMAT_XWA_V20) {
 			return 0;
 		}
 	}
 
 	if (formatVersion == 12 || formatVersion == 14 || formatVersion == 15 || formatVersion == 17 ||
-		formatVersion == 16 || formatVersion == 18) {
+		formatVersion == 16 || formatVersion == 18 || formatVersion == MISSION_FORMAT_XWA_V20) {
 
-		if (formatVersion == 17 || formatVersion == 16 || formatVersion == 18) {
+		if (formatVersion == 17 || formatVersion == 16 || formatVersion == 18 ||
+			formatVersion == MISSION_FORMAT_XWA_V20) {
 			FeDiskIo_ReadWithRetryPrompt(&g_missionHeader, sizeof(g_missionHeader), 1u, stream);
 		} else {
 			FeDiskIo_ReadWithRetryPrompt(&legacyHeader, sizeof(legacyHeader), 1u, stream);
@@ -535,7 +537,7 @@ int Mission_LoadFile(char* fileName) {
 
 		for (fgIdx = 0; fgIdx < (int16_t)g_missionHeader.numFlightGroups; ++fgIdx) {
 			if (g_missionFormatVersion == 17 || g_missionFormatVersion == 16 ||
-				g_missionFormatVersion == 18) {
+				g_missionFormatVersion == 18 || g_missionFormatVersion == MISSION_FORMAT_XWA_V20) {
 				FeDiskIo_ReadWithRetryPrompt(&g_missionFlightGroups[fgIdx].fg, sizeof(XwaFlightGroup), 1u,
 											 stream);
 			} else {
@@ -704,7 +706,7 @@ int Mission_LoadFile(char* fileName) {
 		for (messageIdx = 0; messageIdx < (int16_t)g_missionHeader.numMessages; ++messageIdx) {
 			FeDiskIo_ReadWithRetryPrompt(&indexedRecord, 2u, 1u, stream);
 			if (g_missionFormatVersion == 17 || g_missionFormatVersion == 16 ||
-				g_missionFormatVersion == 18) {
+				g_missionFormatVersion == 18 || g_missionFormatVersion == MISSION_FORMAT_XWA_V20) {
 				FeDiskIo_ReadWithRetryPrompt(&g_missionMessages[indexedRecord], sizeof(XwaMessage), 1u,
 											 stream);
 			} else {
@@ -745,7 +747,7 @@ int Mission_LoadFile(char* fileName) {
 		for (teamIdx = 0; teamIdx < 10; ++teamIdx) {
 			FeDiskIo_ReadWithRetryPrompt(&count, 2u, 1u, stream);
 			if (g_missionFormatVersion == 17 || g_missionFormatVersion == 16 ||
-				g_missionFormatVersion == 18) {
+				g_missionFormatVersion == 18 || g_missionFormatVersion == MISSION_FORMAT_XWA_V20) {
 				FeDiskIo_ReadWithRetryPrompt(&g_missionGlobalGoals[teamIdx][0], sizeof(XwaGlobalGoal), count,
 											 stream);
 			} else {
@@ -841,7 +843,8 @@ int Mission_LoadFile(char* fileName) {
 				}
 			}
 		}
-		if (g_missionFormatVersion == MISSION_FORMAT_XWA_V18) {
+		if (g_missionFormatVersion == MISSION_FORMAT_XWA_V18 ||
+			g_missionFormatVersion == MISSION_FORMAT_XWA_V20) {
 #ifdef XWA_MODERN
 			File_Seek(stream, MISSION_MODERN_STRING_TAIL, SEEK_CUR);
 #else
@@ -855,7 +858,7 @@ int Mission_LoadFile(char* fileName) {
 					uint8_t length;
 					MemoryHandle handle;
 					if (g_missionFormatVersion == 17 || g_missionFormatVersion == 16 ||
-						g_missionFormatVersion == 18) {
+						g_missionFormatVersion == 18 || g_missionFormatVersion == MISSION_FORMAT_XWA_V20) {
 						FeDiskIo_ReadWithRetryPrompt(&firstCharacter, 1u, 1u, stream);
 						if ((char)firstCharacter != '\0') {
 							FeDiskIo_ReadWithRetryPrompt(&stringBuffer[1], 0x3fu, 1u, stream);
@@ -890,7 +893,7 @@ int Mission_LoadFile(char* fileName) {
 						uint8_t length;
 						MemoryHandle handle;
 						if (g_missionFormatVersion == 17 || g_missionFormatVersion == 16 ||
-							g_missionFormatVersion == 18) {
+							g_missionFormatVersion == 18 || g_missionFormatVersion == MISSION_FORMAT_XWA_V20) {
 							FeDiskIo_ReadWithRetryPrompt(&firstCharacter, 1u, 1u, stream);
 							if ((char)firstCharacter != '\0') {
 								FeDiskIo_ReadWithRetryPrompt(&stringBuffer[1], 0x3fu, 1u, stream);
@@ -919,7 +922,7 @@ int Mission_LoadFile(char* fileName) {
 			}
 		}
 
-		if (g_missionFormatVersion == 17 || g_missionFormatVersion == 16 || g_missionFormatVersion == 18) {
+		if (g_missionFormatVersion == 17 || g_missionFormatVersion == 16 || g_missionFormatVersion == 18 || g_missionFormatVersion == MISSION_FORMAT_XWA_V20) {
 			for (fgIdx = 0; fgIdx < (int16_t)g_missionHeader.numFlightGroups; ++fgIdx) {
 				for (groupIdx = 0; groupIdx < 4; ++groupIdx) {
 					for (slotIdx = 0; slotIdx < 4; ++slotIdx) {
@@ -948,7 +951,8 @@ int Mission_LoadFile(char* fileName) {
 			}
 		}
 
-		if (g_missionFormatVersion != MISSION_FORMAT_XWA_V18) {
+		if (g_missionFormatVersion != MISSION_FORMAT_XWA_V18 &&
+			g_missionFormatVersion != MISSION_FORMAT_XWA_V20) {
 			for (fgIdx = 0; fgIdx < (int16_t)g_missionHeader.numFlightGroups; ++fgIdx) {
 				XwaFlightGroup* fg = &g_missionFlightGroups[fgIdx].fg;
 				int outerOrder;

@@ -87,8 +87,16 @@ static void XwaPort_FreeStartupAssets(void) {
 }
 
 static void XwaPort_ApplyClassicFlightRenderingPolicy(void) {
-	const int suppress = XwaFlightTask_IsActive() && !FlightDisplay_IsFrontendModalActive() &&
-						 !g_xwaPortClassicFlightRenderingEnabled;
+	/* The remaster owns the suppression decision: it disables classic
+	 * rendering only when it holds an opaque HD frame for the current
+	 * scene (flight, or frontend/menu). Honor that decision outside
+	 * flight too — the old flight-only gate would have let the classic
+	 * layer through in the frontend even after the remaster asked for
+	 * suppression, drawing every menu glyph twice. The flight-modal
+	 * exception is preserved: a frontend modal over an active flight
+	 * still needs the classic layer underneath. */
+	const int suppress = !g_xwaPortClassicFlightRenderingEnabled &&
+						 (!XwaFlightTask_IsActive() || !FlightDisplay_IsFrontendModalActive());
 	AeronDx5_SetClassicFlightRenderingSuppressed(suppress);
 }
 

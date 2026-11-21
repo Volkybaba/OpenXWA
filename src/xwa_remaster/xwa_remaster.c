@@ -17,6 +17,7 @@
 #include "xwa_remaster/xwa_remaster.h"
 
 #include "aeron/aeron.h"
+#include "aeron/compat/host.h"
 #include "aeron/debug.h"
 #include "aeron/scene/blend_ramp.h"
 #include "xwa_remaster/assets.h"
@@ -462,8 +463,22 @@ static void XwaRemaster_TogglePrimaryView(void) {
 
 static int XwaRemaster_CanSuppressClassicFlight(void) {
 	const XwaSnapshot* snap = XwaSnapshot_Current();
-	return snap && snap->scene_kind == XWA_SCENE_FLIGHT && snap->flight_camera_valid && g.scene_tex &&
-		   g.scene_kind == XWA_SCENE_FLIGHT && g.mode == RM_VIEW_HD && g.ramp.alpha >= 1.0f;
+	if (!snap || !g.scene_tex || g.mode != RM_VIEW_HD || g.ramp.alpha < 1.0f) {
+		return 0;
+	}
+	if (snap->scene_kind == XWA_SCENE_FLIGHT) {
+		return snap->flight_camera_valid && g.scene_kind == XWA_SCENE_FLIGHT;
+	}
+	/* Frontend/menu: the HD reconstruction replays every glyph into
+	 * output_rt, so the classic layer would draw the same text a second
+	 * time on top. Suppress it once the HD frame for this scene is
+	 * opaque. (The retained-classic fallback in XwaRemaster_Frame covers
+	 * the frame where scene_tex goes missing.) */
+	if (snap->scene_kind == XWA_SCENE_FRONTEND || snap->scene_kind == XWA_SCENE_FRONTEND_MODAL ||
+	    snap->scene_kind == XWA_SCENE_LOADING) {
+		return g.scene_kind == snap->scene_kind;
+	}
+	return 0;
 }
 
 static int XwaRemaster_CanPresentFlightDirect(const XwaSnapshot* snap) {
@@ -537,6 +552,7 @@ void XwaRemaster_BeginFrame(const AeronInputSnapshot* input) {
 
 	g.classic_suppressed_this_frame = XwaRemaster_CanSuppressClassicFlight() && !g.pending_mode_valid;
 	XwaPort_SetClassicFlightRenderingEnabled(!g.classic_suppressed_this_frame);
+
 }
 
 void XwaRemaster_Frame(int32_t delta_us) {
@@ -726,14 +742,14 @@ void XwaRemaster_Frame(int32_t delta_us) {
 				case XWA_SCENE_FRONTEND:
 				case XWA_SCENE_LOADING:
 				case XWA_SCENE_FRONTEND_MODAL: {
-					const XwaPresentationRect frame = XwaPresentation_Frame();
-					const XwaPresentationRect safe = XwaPresentation_ClassicSafeFrame();
-					/* Match Aeron_ProjectLogicalRect exactly so the frontend texture
-					 * reaches the swapchain without a whole-frame size conversion. */
-					const int frontend_width =
-						(int)((long long)safe.width * g.render_pixel_width / frame.width);
+					/* HD frontend frame: a 4:3 texture at the render width, so
+					 * classic 640x480 content is rendered 1:1 from the first
+					 * frame. The letterboxed presentation pixel height (640x360)
+					 * resampled the retained text; sizing by width and the
+					 * classic 4:3 aspect gives 640x480 on a 640-wide render. */
+					const int frontend_width = g.render_pixel_width;
 					const int frontend_height =
-						(int)((long long)safe.height * g.render_pixel_height / frame.height);
+						(int)((long long)frontend_width * XWA_CLASSIC_HEIGHT / XWA_CLASSIC_WIDTH);
 					render_output_required = 1;
 					Aeron_GpuDebugPush(cmd, "OpenXWA frontend reconstruction");
 					next_scene_tex =

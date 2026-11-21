@@ -30,6 +30,20 @@ XwaPresentationRect XwaPresentation_AspectFit(int aspect_w, int aspect_h, XwaPre
 
 void XwaPresentation_SyncToWindow(int window_width, int window_height) {
 	int width;
+	int pixel_width  = 0;
+	int pixel_height = 0;
+
+	/* Derive the frame from the PIXEL aspect, not the point aspect: on this
+	 * device the window is 576x324 pt (16:9) but 640x480 px (4:3). Using
+	 * points made the logical frame 1920x1080, so the 640x480 frontend
+	 * texture was presented into a 480x360 letterbox (0.75x downscale and
+	 * the speckled/ghosted text). With pixels the frame is 1440x1080 and
+	 * the texture presents 1:1. Falls back to the passed points when the
+	 * pixel size is unavailable. */
+	if (Aeron_GetWindowSizeInPixels(&pixel_width, &pixel_height) && pixel_width > 0 && pixel_height > 0) {
+		window_width  = pixel_width;
+		window_height = pixel_height;
+	}
 
 	if (window_width <= 0 || window_height <= 0) {
 		return;

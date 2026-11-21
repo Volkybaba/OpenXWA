@@ -217,8 +217,11 @@ XwaRemasterHyperspace* XwaRemasterHyperspace_Create(const XwaFlightHyperspaceTun
 		.address_v = AERON_ADDRESS_CLAMP_TO_EDGE,
 		.address_w = AERON_ADDRESS_CLAMP_TO_EDGE,
 	});
+	/* NOTE: environment_pipeline is optional; without compute support
+	   (e.g. GLES backend) the hyperspace tunnel still renders, just
+	   without the generated environment lighting. */
 	if (!h->streak_vs || !h->streak_fs || !h->tunnel_vs || !h->tunnel_fs ||
-		!h->environment_pipeline || !h->environment_atlas || !h->environment_cube ||
+		!h->environment_atlas || !h->environment_cube ||
 		!h->environment_sampler) {
 		Aeron_LogError("xwa.remaster", "hyperspace: GPU resource creation failed");
 		XwaRemasterHyperspace_Destroy(h);
@@ -382,6 +385,10 @@ static void hyper_build_transition_lighting(XwaRemasterHyperspace* h, float flas
 }
 
 static int hyper_generate_environment(XwaRemasterHyperspace* h, AeronCommandBuffer* cmd) {
+	if (!h->environment_pipeline) {
+		/* No compute support: skip environment generation. */
+		return 1;
+	}
 	const AeronComputeTextureBinding output = { .texture = h->environment_atlas };
 	AeronComputePass* pass = Aeron_BeginComputePass(&(AeronComputePassDesc) {
 		.command_buffer = cmd,

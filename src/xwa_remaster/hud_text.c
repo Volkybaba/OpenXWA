@@ -478,7 +478,7 @@ void XwaRemasterHudText_PrepareDrawList(AeronCommandBuffer* cmd, int target_w, i
 				sprite.tint[2] = XwaRemaster_SrgbToLinear((argb & 255) / 255.0f) * a;
 				sprite.tint[3] = a;
 				sprite.blend = AERON_BLIT2D_BLEND_PMA;
-				sprite.filter = AERON_BLIT2D_FILTER_LINEAR;
+				sprite.filter = AERON_BLIT2D_FILTER_NEAREST;
 				AeronDrawList_AddSprite(text_list, &sprite);
 			}
 		}
@@ -516,7 +516,7 @@ void XwaRemasterHudText_PrepareDrawList(AeronCommandBuffer* cmd, int target_w, i
 		sprite.tint[2] = XwaRemaster_SrgbToLinear((glyph->argb & 255) / 255.0f) * a;
 		sprite.tint[3] = a;
 		sprite.blend = AERON_BLIT2D_BLEND_PMA;
-		sprite.filter = AERON_BLIT2D_FILTER_LINEAR;
+		sprite.filter = AERON_BLIT2D_FILTER_NEAREST;
 		AeronDrawList_AddSprite(text_list, &sprite);
 	}
 	XwaRemasterHud_EndRenderPhase();

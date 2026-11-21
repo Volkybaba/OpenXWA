@@ -70,7 +70,7 @@ int XwaRemasterText_AddFlightString(AeronDrawList2D* list, const AeronFontAtlas*
 				sprite.tint[2] = XwaRemaster_SrgbToLinear((float)(argb & 255u) / 255.0f) * a;
 				sprite.tint[3] = a;
 				sprite.blend = AERON_BLIT2D_BLEND_PMA;
-				sprite.filter = AERON_BLIT2D_FILTER_LINEAR;
+				sprite.filter = AERON_BLIT2D_FILTER_NEAREST;
 				if (scissor)
 					sprite.scissor = *scissor;
 				AeronDrawList_AddSprite(list, &sprite);
@@ -125,7 +125,7 @@ int XwaRemasterText_AddFrontendGlyph(AeronDrawList2D* list, XwaRemasterAssets* a
 	scale_x = (float)target_width / (float)XWA_CLASSIC_WIDTH;
 	scale_y = (float)target_height / (float)XWA_CLASSIC_HEIGHT;
 	sprite.texture = font->texture;
-	sprite.filter = AERON_BLIT2D_FILTER_LINEAR;
+	sprite.filter = AERON_BLIT2D_FILTER_NEAREST;
 	sprite.blend = AERON_BLIT2D_BLEND_PMA;
 	sprite.scissor = text_scissor(glyph, target_width, target_height);
 	sprite.src_u0 = (float)metrics->atlas_x / (float)font->atlas_w;

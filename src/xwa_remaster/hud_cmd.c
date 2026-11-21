@@ -153,7 +153,6 @@ static int cmd_model_genus(const XwaFlightObject* object) {
 		case XWA_SNAP_GENUS_MINE:
 		case XWA_SNAP_GENUS_ASTEROID:
 		case XWA_SNAP_GENUS_DEBRIS:
-		case XWA_SNAP_GENUS_DS_TUNNEL:
 			return 1;
 		default:
 			return 0;
@@ -729,7 +728,7 @@ void XwaRemasterHudCmd_Prepare(AeronCommandBuffer* cmd, const XwaSnapshot* snaps
 		return;
 	static const float tint[4] = { 1, 1, 1, 1 };
 	AeronScenePresentChain_Draw(s_cmd.present, pass, scene_texture, s_cmd.sampler, NULL, 0.0f, width, height,
-								/*bar_y_uv=*/1.0f, tint, /*src_coverage=*/1);
+								/*bar_y_uv=*/1.0f, tint, /*src_coverage=*/1, /*flip_y=*/1);
 	Aeron_EndRenderPass(pass);
 	s_cmd.output = Aeron_RenderTargetGetTexture(s_cmd.present_rt);
 	s_cmd.prepared.valid = s_cmd.output != NULL;
@@ -789,7 +788,15 @@ void XwaRemasterHudCmd_PrepareDrawList(AeronCommandBuffer* cmd, int target_w, in
 	const AeronRectI scissor = { scissor_x0, scissor_y0, scissor_x1 - scissor_x0, scissor_y1 - scissor_y0 };
 	AeronDrawList2DSprite sprite = { 0 };
 	sprite.texture = s_cmd.output;
-	sprite.src_u1 = sprite.src_v1 = 1.0f;
+	sprite.src_u1 = 1.0f;
+	/* v66: v65'teki V takasi (v0=1, v1=0) YANLISTI, geri alindi.
+	 * Parite kaniti (v63 duz / v64 ters / v65 ters): CRT gemisi,
+	 * oyun blit flip'i ACIK + V normal (v0=0, v1=1) iken duz;
+	 * V takasi onu ters cevirir. Ana sahne dokusu blit'ten
+	 * gecmez (fullscreen.vert / present-chain quad), o yuzden
+	 * bu sprite disinda bir V-flip'e gerek yok. */
+	sprite.src_v0 = 0.0f;
+	sprite.src_v1 = 1.0f;
 	sprite.dst_x = x;
 	sprite.dst_y = y;
 	sprite.dst_w = w;

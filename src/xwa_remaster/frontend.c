@@ -680,8 +680,33 @@ static void rm_reconstruct(AeronCommandBuffer* cmd, const XwaSnapshot* snap) {
 		}
 	}
 
-	/* Only frontend updates reach reconstruction; idle host ticks retain output. */
-	rm_blit_rt(cmd, g.output_rt, g.screen_rt);
+	/* Only frontend updates reach reconstruction; idle host ticks retain output.
+	 * v77: ping-pong fix (conservative). When the engine cleared the back
+	 * buffer as part of building this frame (a BACKBUFFER_CLEAR surface
+	 * event before the first PRESENT in z-order), the persistent screen
+	 * content is stale for this frame: clear output_rt instead of seeding
+	 * it from screen_rt, so the fresh records are drawn once. A clear
+	 * after PRESENT prepares the next frame and must not wipe the frame
+	 * about to be presented, so it does not trigger this. */
+	{
+		int clear_before_present = 0;
+		uint32_t clear_color = 0;
+		for (uint32_t i = 0; i < snap->surface_event_count; i++) {
+			const XwaSurfaceEvent* e = &snap->surface_events[i];
+			if (e->kind == XWA_SURFACE_EVENT_PRESENT)
+				break;
+			if (e->kind == XWA_SURFACE_EVENT_BACKBUFFER_CLEAR) {
+				clear_before_present = 1;
+				clear_color = (uint32_t)(uint16_t)e->aux0;
+				break;
+			}
+		}
+		if (clear_before_present)
+			rm_surface_clear(cmd, g.output_rt, clear_color);
+		else
+			rm_blit_rt(cmd, g.output_rt, g.screen_rt);
+	}
+
 
 	const XwaSurfaceEvent* cursor = NULL;
 	const XwaSurfaceEvent* cursor_label = NULL;
